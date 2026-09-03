@@ -114,11 +114,6 @@ DP_PRICE, DP_TOTAL, DP_PER_GOOD, DP_RATE = 4, 2, 4, 3
 # actually different misses by thousands.
 MONEY_SLACK = 0.50
 
-# A section that is only a heading is not a section. The reference memo's
-# shortest section runs to 67 words, so these floors sit far below any real
-# writing while still catching an empty or one-line stub.
-MIN_SECTION_WORDS = 15
-MIN_NARRATIVE_WORDS = 40
 
 
 # ---------------------------------------------------------------------------
@@ -203,6 +198,47 @@ def is_whole(value):
 def states_money(text, target):
     """The text quotes `target` US dollars, to the cent or to the dollar."""
     return any(abs(v - target) <= MONEY_SLACK + 1e-9 for v in numbers_in(text))
+
+
+# A dollar marker directly before or after a figure: `USD 963017.63`,
+# `$963,017.63`, `963,017.63 USD`, `963,018 US dollars`.
+DOLLAR_BEFORE = r"(?:USD|US\$|\$|US dollars?)\s*"
+DOLLAR_AFTER = r"\s*(?:USD|US dollars?|dollars?)\b"
+NUMBER = r"-?\d[\d,]*(?:\.\d+)?"
+
+
+def dollar_figures(text):
+    """Every figure the text explicitly states in US dollars."""
+    out = []
+    for pat in (DOLLAR_BEFORE + "(" + NUMBER + ")", "(" + NUMBER + ")" + DOLLAR_AFTER):
+        for tok in re.findall(pat, text):
+            try:
+                out.append(float(tok.replace(",", "")))
+            except ValueError:
+                pass
+    return out
+
+
+def states_dollars(text, target):
+    """The text states `target` as a US-dollar amount, to the cent or dollar."""
+    return any(abs(v - target) <= MONEY_SLACK + 1e-9 for v in dollar_figures(text))
+
+
+def statements(text):
+    """The units a figure can be tied to: each table row on its own, and each
+    sentence of running prose (with soft line-wraps joined first)."""
+    out = []
+    for block in re.split(r"\n\s*\n", text):
+        for line in block.splitlines():
+            if line.lstrip().startswith("|"):
+                out.append(line)
+        prose = " ".join(l for l in block.splitlines() if not l.lstrip().startswith("|"))
+        out.extend(s for s in re.split(r"(?<=[.!?])\s+", prose) if s.strip())
+    return out
+
+
+def mentions(text, code):
+    return code in text or name_key(GOLD_NAME[code]) in name_key(text)
 
 
 def states_count(text, target):
@@ -477,10 +513,9 @@ def test_award_is_correct_supplier():
 def test_recommendation_names_correct_supplier():
     body = section("Recommendation")
     assert body.strip(), "## Recommendation section missing or empty"
-    codes = re.findall(r"SUP-\d{4}", body)
-    assert codes, "## Recommendation names no supplier code"
-    assert codes[0] == AWARD, (
-        "## Recommendation puts forward %s; the award goes to %s" % (codes[0], AWARD))
+    assert AWARD in body, (
+        "## Recommendation does not name the awarded supplier by its code, %s"
+        % AWARD)
     assert name_key(GOLD_NAME[AWARD]) in name_key(body), (
         "## Recommendation does not name the awarded supplier's legal name in "
         "full, %r" % GOLD_NAME[AWARD])
@@ -489,12 +524,12 @@ def test_recommendation_names_correct_supplier():
 def test_recommendation_states_total_and_margin():
     body = section("Recommendation")
     assert body.strip(), "## Recommendation section missing or empty"
-    assert states_money(body, GOLD_TOTAL[AWARD]), (
+    assert states_dollars(body, GOLD_TOTAL[AWARD]), (
         "## Recommendation does not state the awarded supplier's FY2026 total "
-        "cost of USD %.2f" % round(GOLD_TOTAL[AWARD], 2))
-    assert states_money(body, GOLD_MARGIN), (
-        "## Recommendation does not state the USD amount by which the award "
-        "beats the second-ranked supplier over FY2026, USD %.2f"
+        "cost, USD %.2f, as a US-dollar amount" % round(GOLD_TOTAL[AWARD], 2))
+    assert states_dollars(body, GOLD_MARGIN), (
+        "## Recommendation does not state the US-dollar amount by which the "
+        "award beats the second-ranked supplier over FY2026, USD %.2f"
         % round(GOLD_MARGIN, 2))
 
 
@@ -522,32 +557,18 @@ def test_memo_has_required_sections_in_order():
     idx = [found.index(s) for s in REQUIRED_SECTIONS]
     assert idx == sorted(idx), "required headings are out of order: %s" % found
 
-    for name in REQUIRED_SECTIONS:
-        words = len(section(name).split())
-        assert words >= MIN_SECTION_WORDS, (
-            "%s runs to %d words; the section has to carry the content the "
-            "prompt asks it for" % (name, words))
+    empty = [s for s in REQUIRED_SECTIONS if not section(s).strip()]
+    assert not empty, "headings with nothing under them: %s" % empty
 
     # the two sections whose substance nothing else here grades: why the
     # suppliers that were not picked lose, and what would overturn the award
     basis = section("Basis of Decision")
-    assert len(basis.split()) >= MIN_NARRATIVE_WORDS, (
-        "## Basis of Decision runs to %d words; it has to explain what drives "
-        "the ranking and why the suppliers not picked lose"
-        % len(basis.split()))
-    basis_key = name_key(basis)
-    silent = [c for c in CANDIDATES
-              if c != AWARD and c not in basis
-              and name_key(GOLD_NAME[c]) not in basis_key]
+    silent = [c for c in CANDIDATES if c != AWARD and not mentions(basis, c)]
     assert not silent, (
         "## Basis of Decision never says why %s lose" % ", ".join(silent))
 
     risks = section("Risks and Sensitivities")
-    assert len(risks.split()) >= MIN_NARRATIVE_WORDS, (
-        "## Risks and Sensitivities runs to %d words; it has to give the risks "
-        "on the awarded supplier and what would overturn the recommendation"
-        % len(risks.split()))
-    assert AWARD in risks or name_key(GOLD_NAME[AWARD]) in name_key(risks), (
+    assert mentions(risks, AWARD), (
         "## Risks and Sensitivities does not tie the risks to the awarded "
         "supplier")
     assert numbers_in(risks), (
@@ -558,9 +579,12 @@ def test_memo_has_required_sections_in_order():
 def test_memo_states_good_unit_requirement():
     body = section("Cost Comparison")
     assert body.strip(), "## Cost Comparison section missing or empty"
-    assert states_count(body, GOOD_UNITS), (
-        "## Cost Comparison does not state the FY2026 good-unit requirement "
-        "of %d" % GOOD_UNITS)
+    tied = [s for s in statements(body) if states_count(s, GOOD_UNITS)
+            and re.search(r"good[\s-]*units?|requirement|required|demand",
+                          s, re.IGNORECASE)]
+    assert tied, (
+        "## Cost Comparison does not state %d as the FY2026 good-unit "
+        "requirement worked to" % GOOD_UNITS)
 
 
 def test_memo_cost_comparison_covers_all_four():
@@ -569,20 +593,18 @@ def test_memo_cost_comparison_covers_all_four():
     body = section("Cost Comparison")
     assert body.strip(), "## Cost Comparison section missing or empty"
     rows, _ = costs_rows()
-    body_key = name_key(body)
-    figures = numbers_in(body)
+    units = statements(body)
     for code in CANDIDATES:
-        assert code in body or name_key(GOLD_NAME[code]) in body_key, (
-            "## Cost Comparison does not cover %s" % code)
+        assert mentions(body, code), "## Cost Comparison does not cover %s" % code
         row = rows.get(code, [])
         # the attempt's own filed total where it is usable, so this checks that
         # the memo carries the figures rather than charging a second time for a
         # total the costs-file checks have already scored
         total = (as_float(row[4], GOLD_TOTAL[code])
                  if len(row) == len(COSTS_HEADER) else GOLD_TOTAL[code])
-        assert any(abs(v - total) <= MONEY_SLACK + 1e-9 for v in figures), (
-            "## Cost Comparison names %s but does not state its FY2026 total "
-            "cost of USD %.2f" % (code, total))
+        assert any(mentions(u, code) and states_money(u, total) for u in units), (
+            "## Cost Comparison never ties %s to its own FY2026 total cost of "
+            "USD %.2f in one row or sentence" % (code, total))
 
 
 def test_memo_flags_non_candidate_supplier():

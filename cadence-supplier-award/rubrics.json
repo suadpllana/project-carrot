@@ -256,6 +256,30 @@
 
   {
     "item": 32,
+    "weight": 4,
+    "criterion": "The `## Data Quality and Exclusions` section of recommendation.md states what was excluded from the source data and why, and identifies every supplier that appears in the source data but is not a candidate for the FY2026 award.",
+    "category": "explore",
+    "verification_type": "text",
+    "grades_output_files": ["recommendation.md"]
+  },
+  {
+    "item": 33,
+    "weight": 4,
+    "criterion": "The `## Risks and Sensitivities` section of recommendation.md gives the risks attached to the awarded supplier, SUP-1042, and quantifies what would have to change for the recommendation to be overturned.",
+    "category": "synthesize",
+    "verification_type": "text",
+    "grades_output_files": ["recommendation.md"]
+  },
+  {
+    "item": 34,
+    "weight": 3,
+    "criterion": "Every figure that recommendation.md repeats from supplier_costs.csv or defect_rates.csv agrees with the value filed there, stated to the cent or rounded to the nearest whole dollar, and not at some other value.",
+    "category": "instruction_following",
+    "verification_type": "text",
+    "grades_output_files": ["recommendation.md", "supplier_costs.csv", "defect_rates.csv"]
+  },
+  {
+    "item": 35,
     "weight": -6,
     "criterion": "PENALTY: recommendation.md cites a price, index, benchmark or cost figure attributed to a source outside the files provided in the environment.",
     "category": "instruction_following",
@@ -263,7 +287,7 @@
     "grades_output_files": ["recommendation.md"]
   },
   {
-    "item": 33,
+    "item": 36,
     "weight": -5,
     "criterion": "PENALTY: recommendation.md adds a separately budgeted inbound freight cost for a supplier whose offer it identifies as delivered-duty-paid.",
     "category": "analyze",
