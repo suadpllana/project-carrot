@@ -66,7 +66,7 @@ CONTRACTS = {
         rebate=None, min_volume=None, shortfall_per_piece=None,
         spec_limit_pct=7.0),
     "SUP-4077": dict(
-        currency="GBP", price=1.4850, pieces_per_uom=1, whole_packs_only=False,
+        currency="GBP", price=1.4700, pieces_per_uom=1, whole_packs_only=False,
         buyer_pays_freight=True, freight_lane="LANE-UK-01", shipments_per_year=12,
         payment_days=60, cash_discount=(0.02, 10),
         # clause 4.2: 4.0% on all pieces, earned ONLY at >= 520,000 pieces
@@ -107,7 +107,7 @@ def load_po_supplier(alias):
 def load_crosswalk():
     """ERP purchase order number -> mart reporting number (CHG-2025-0417)."""
     out = {}
-    with open(DATA / "purchasing" / "po_crosswalk_erp_cutover.csv", encoding="utf-8",
+    with open(DATA / "purchasing" / "po_reference_2025.csv", encoding="utf-8",
               newline="") as fh:
         for r in csv.DictReader(fh):
             out[r["erp_po_number"].strip()] = r["mart_po_id"].strip()
@@ -499,13 +499,13 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
               "SUP-4077.\n".format(
                   source_stats["rows"], source_stats["rows_1042"],
                   100 * rows["SUP-1042"]["rate"], 100 * source_stats["pooled_rate_1042"]))
-    md.append("- **Post-cutover receipts resolved through the ERP crosswalk.** "
+    md.append("- **Post-cutover receipts resolved to their purchase orders.** "
               "Purchasing and receiving moved to the new ERP on {} "
               "(CHG-2025-0417). Receipts posted from that date carry the "
               "ERP's ten-digit purchase order number, which does not exist "
-              "in the purchasing extract; `po_crosswalk_erp_cutover.csv` "
-              "maps it back to the mart number. Joining receipts to purchase "
-              "orders without the crosswalk silently loses every lot received "
+              "in the purchasing extract; `po_reference_2025.csv` "
+              "carries both numbers. Joining receipts to purchase "
+              "orders on the number as posted silently loses every lot received "
               "after go-live — {} of {} inspected lots — and those lots carry "
               "most of SUP-3155's rejects: without them its rate reads about "
               "{:.2f}% instead of {:.2f}% and the award flips to "

@@ -19,30 +19,24 @@ ERP that morning. The ERP numbers purchase orders in its own ten-digit range
 
 The purchasing reporting mart, which produces the purchase-order extract used
 by Sourcing and Finance, was NOT re-platformed. It continues to key every
-purchase order under a PO-45xxx reporting number, assigning one to each order
-raised in the ERP after go-live so that reporting has one continuous series.
+purchase order under a PO-45xxx reporting number.
 
-Goods receipts posted in the ERP from go-live onward reference the ERP purchase
-order number. Receipts posted before go-live reference the legacy number, and
-the receipts extract carries whichever number the posting system used.
+Goods receipts are posted in the system of record for the posting date and
+carry that system's purchase order number.
 
-A crosswalk between the two number series is published with the purchasing
-extracts (purchasing/po_crosswalk_erp_cutover.csv) and covers every purchase
-order in the mart, whether it was raised before or after go-live.
+Both number series appear on the mart's 2025 purchase-order reference extract.
 
-KNOWN SIDE EFFECT
------------------
-The QMS incoming-inspection interface receives the lot identifier from the
-receiving transaction but no longer receives the supplier name, which the
-legacy interface had populated. Inspectors may key the supplier name by hand
-on the inspection record; the field is free text and is not validated against
-the vendor master. This has been the case on some records since before go-live
-and is not scheduled to be fixed.
+INTERFACE NOTE
+--------------
+The QMS inspection interface receives the lot identifier from the receiving
+transaction. It does not receive the supplier name; where a supplier name
+appears on an inspection record it was keyed by hand and is not validated
+against the vendor master.
 
 ACTIONS
 -------
   ACT-1  Migrate open purchase orders ........................ DONE 2025-07-01
-  ACT-2  Publish PO number crosswalk to the mart ............. DONE 2025-07-02
+  ACT-2  Publish ERP / mart number reference extract ......... DONE 2025-07-02
   ACT-3  Notify Sourcing, Finance, Quality ................... DONE 2025-07-02
   ACT-4  Restore supplier name on the QMS interface .......... DEFERRED (FY2027)
 ================================================================================

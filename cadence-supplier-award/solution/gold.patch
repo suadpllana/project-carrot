@@ -11,7 +11,7 @@ new file mode 100644
 @@ -0,0 +1,5 @@
 +supplier_code,supplier_name,quoted_price_usd_per_unit,units_to_purchase,total_fy2026_cost_usd,cost_per_good_unit_usd,rank
 +SUP-1042,"Meridian Precision Works, LLC",1.9450,495010,963017.63,1.9815,1
-+SUP-4077,Brackenridge Tooling Ltd,1.8889,497951,976280.36,2.0088,2
++SUP-4077,Brackenridge Tooling Ltd,1.8698,497951,966923.55,1.9896,2
 +SUP-2318,Rheinwerk Feinmechanik GmbH,1.9313,492200,978330.38,2.0130,3
 +SUP-3155,"Talleres Nortenos, S.A. de C.V.",1.8966,517572,987625.94,2.0322,4
 diff --git a/output/defect_rates.csv b/output/defect_rates.csv
@@ -37,7 +37,7 @@ new file mode 100644
 +
 +Award the full FY2026 SP-40 volume to **Meridian Precision Works, LLC (SUP-1042)**, contracting **495,010 pieces** for the contract year.
 +
-+Its FY2026 total cost to Cadence is **USD 963017.63**, which is **USD 13262.73 lower over the contract year** than the second-ranked offer from Brackenridge Tooling Ltd (SUP-4077, USD 976280.36). On a cost-per-good-unit basis that is USD 1.9815 against USD 2.0088, a 1.38% advantage.
++Its FY2026 total cost to Cadence is **USD 963017.63**, which is **USD 3905.92 lower over the contract year** than the second-ranked offer from Brackenridge Tooling Ltd (SUP-4077, USD 966923.55). On a cost-per-good-unit basis that is USD 1.9815 against USD 1.9896, a 0.41% advantage.
 +
 +This is a single-supplier award for the full contract-year volume, as directed.
 +
@@ -48,7 +48,7 @@ new file mode 100644
 +| supplier_code | supplier_name | quoted USD/piece | units to purchase | FY2026 total USD | USD per good unit | rank |
 +| --- | --- | --- | --- | --- | --- | --- |
 +| SUP-1042 | Meridian Precision Works, LLC | 1.9450 | 495,010 | 963017.63 | 1.9815 | 1 |
-+| SUP-4077 | Brackenridge Tooling Ltd | 1.8889 | 497,951 | 976280.36 | 2.0088 | 2 |
++| SUP-4077 | Brackenridge Tooling Ltd | 1.8698 | 497,951 | 966923.55 | 1.9896 | 2 |
 +| SUP-2318 | Rheinwerk Feinmechanik GmbH | 1.9313 | 492,200 | 978330.38 | 2.0130 | 3 |
 +| SUP-3155 | Talleres Nortenos, S.A. de C.V. | 1.8966 | 517,572 | 987625.94 | 2.0322 | 4 |
 +
@@ -57,7 +57,7 @@ new file mode 100644
 +| supplier_code | material | inbound freight | volume rebate | shortfall charge | scrap disposal | payment terms | total |
 +| --- | --- | --- | --- | --- | --- | --- | --- |
 +| SUP-1042 | 962794.45 | 0.00 | 0.00 | 0.00 | 3784.20 | -3561.02 | 963017.63 |
-+| SUP-4077 | 940589.60 | 35121.16 | 0.00 | 9816.21 | 5019.42 | -14266.04 | 976280.36 |
++| SUP-4077 | 931088.70 | 35121.16 | 0.00 | 9816.21 | 5019.42 | -14121.94 | 966923.55 |
 +| SUP-2318 | 950585.86 | 36276.40 | -11135.88 | 0.00 | 2604.00 | 0.00 | 978330.38 |
 +| SUP-3155 | 981627.06 | 0.00 | 0.00 | 0.00 | 13260.24 | -7261.35 | 987625.94 |
 +
@@ -67,7 +67,7 @@ new file mode 100644
 +
 +Four things separate these offers, and none of them is the headline price.
 +
-+**Quoted price is the weakest signal.** Restated in US dollars per piece at the mandated planning rates, the recommended supplier SUP-1042 holds the *highest* quoted price of the four at USD 1.9450, against USD 1.8889 for the cheapest quote, SUP-4077. Note that SUP-2318 quotes per 100-piece box rather than per piece. Ranking on quoted price alone awards the contract to SUP-4077, and it is the wrong answer.
++**Quoted price is the weakest signal.** Restated in US dollars per piece at the mandated planning rates, the recommended supplier SUP-1042 holds the *highest* quoted price of the four at USD 1.9450, against USD 1.8698 for the cheapest quote, SUP-4077. Note that SUP-2318 quotes per 100-piece box rather than per piece. Ranking on quoted price alone awards the contract to SUP-4077, and it is the wrong answer.
 +
 +**Incoming quality decides the purchase quantity.** Rejected pieces are scrapped with no credit and no replacement under clause 5.4 of all four term sheets, so the buy quantity has to carry the loss. On 2025 incoming-inspection history the four suppliers run at SUP-1042 1.82%, SUP-2318 1.25%, SUP-3155 6.10%, SUP-4077 2.40%. That spread moves the purchase quantity by 25,372 pieces between the best and worst supplier and is the reason SUP-3155 cannot win on its low peso price.
 +
@@ -81,7 +81,7 @@ new file mode 100644
 +
 +- **Source inspections excluded from the reject rates.** The inspection log carries 33 `SOURCE` records alongside the `INCOMING` ones: pre-shipment inspections by Cadence supplier-quality engineers at the supplier's plant, 22 of them on SUP-1042 lots. Pieces rejected at source are replaced by the supplier before the lot ships, are never invoiced or received, and the same lot is inspected again on receipt. Only `INCOMING` records describe pieces Cadence pays for and scraps, so only they enter the reject rates. Pooling the two counts those lots twice and lifts SUP-1042's rate from 1.82% to about 3.72%, which hands the award to SUP-4077.
 +
-+- **Post-cutover receipts resolved through the ERP crosswalk.** Purchasing and receiving moved to the new ERP on 2025-07-01 (CHG-2025-0417). Receipts posted from that date carry the ERP's ten-digit purchase order number, which does not exist in the purchasing extract; `po_crosswalk_erp_cutover.csv` maps it back to the mart number. Joining receipts to purchase orders without the crosswalk silently loses every lot received after go-live — 62 of 242 inspected lots — and those lots carry most of SUP-3155's rejects: without them its rate reads about 3.42% instead of 6.10% and the award flips to SUP-3155.
++- **Post-cutover receipts resolved to their purchase orders.** Purchasing and receiving moved to the new ERP on 2025-07-01 (CHG-2025-0417). Receipts posted from that date carry the ERP's ten-digit purchase order number, which does not exist in the purchasing extract; `po_reference_2025.csv` carries both numbers. Joining receipts to purchase orders on the number as posted silently loses every lot received after go-live — 62 of 242 inspected lots — and those lots carry most of SUP-3155's rejects: without them its rate reads about 3.42% instead of 6.10% and the award flips to SUP-3155.
 +
 +- **Supplier identity.** Purchasing, quality and the supplier master each spell supplier names differently, and the inspection log's free-text `supplier` field is blank or null on a large minority of lots (the QMS interface stopped receiving it at the ERP go-live). Records were resolved to supplier codes through the `name_aliases` sheet of the supplier master, and inspection lots were attributed by `lot_id` through the goods receipt to the purchase order and then to the supplier code. Attributing on the free-text field instead drops the unattributed lots, and those lots are not randomly distributed: doing so understates SUP-3155's reject rate by roughly half and reverses the award.
 +
@@ -99,9 +99,9 @@ new file mode 100644
 +
 +## Risks and Sensitivities
 +
-+- **The margin is 1.38% of contract value.** SUP-1042 beats SUP-4077 by USD 13262.73 on USD 963017.63 of annual spend. It is a real but not commanding lead, and it is sensitive to quality drift more than to anything else.
++- **The margin is 0.41% of contract value.** SUP-1042 beats SUP-4077 by USD 3905.92 on USD 963017.63 of annual spend. It is a real but not commanding lead, and it is sensitive to quality drift more than to anything else.
 +
-+- **Quality drift is the live risk.** SUP-1042's 2025 incoming reject rate is 1.82%. Holding everything else, its FY2026 cost matches the second-ranked offer once its reject rate reaches about 2.92%, and its clause 5 specification cap of 3.0% leaves contractual room to drift that far without breaching the agreement. Incoming quality, not price, is what this award rides on.
++- **Quality drift is the live risk.** SUP-1042's 2025 incoming reject rate is 1.82%. Holding everything else, its FY2026 cost matches the second-ranked offer once its reject rate reaches about 2.15%, and its clause 5 specification cap of 3.0% leaves contractual room to drift that far without breaching the agreement. Incoming quality, not price, is what this award rides on.
 +
 +- **The incoming rate depends on the source sort.** On the 22 SUP-1042 lots that were source-inspected in 2025, the engineer rejected 12.1% of pieces at the plant before they shipped. The low incoming rate is partly the product of that sorting; if source inspection is scaled back in FY2026, incoming quality could move toward the breakeven above. Keeping the source-inspection cadence is a condition of the award.
 +

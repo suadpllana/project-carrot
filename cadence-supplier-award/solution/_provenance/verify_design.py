@@ -54,7 +54,7 @@ def rederive():
     po_sup = {r["po_id"]: alias.get(r["supplier_name"].strip().casefold())
               for r in rows_of(DATA / "purchasing" / "purchase_orders_2025.csv")}
     xwalk = {r["erp_po_number"]: r["mart_po_id"]
-             for r in rows_of(DATA / "purchasing" / "po_crosswalk_erp_cutover.csv")}
+             for r in rows_of(DATA / "purchasing" / "po_reference_2025.csv")}
     lot_sup = {}
     for r in rows_of(DATA / "purchasing" / "goods_receipts_2025.csv"):
         lot_sup[r["lot_id"]] = po_sup.get(xwalk.get(r["po_id"], r["po_id"]))
@@ -90,7 +90,7 @@ def rederive():
         "SUP-1042": (1.9450, 1, "USD", None, 45, None),
         "SUP-2318": (178.00, 100, "EUR", "LANE-DE-01", 30, None),
         "SUP-3155": (34.80, 1, "MXN", None, 60, None),
-        "SUP-4077": (1.4850, 1, "GBP", "LANE-UK-01", 60, (0.02, 10)),
+        "SUP-4077": (1.4700, 1, "GBP", "LANE-UK-01", 60, (0.02, 10)),
     }
     out = {}
     for c, (price, per, ccy, lane, days, disc) in terms.items():
@@ -176,7 +176,7 @@ def sweep(solve):
         ("pools the SOURCE inspections (dedupe keeps first record)", dict(defect_kw=dict(points=None, keep="first"))),
         ("pools the SOURCE inspections (dedupe keeps last record)", dict(defect_kw=dict(points=None, keep="last"))),
         ("pools the SOURCE inspections, no dedupe", dict(defect_kw=dict(points=None, keep="none"))),
-        ("joins receipts without the ERP crosswalk", dict(lot_kw=dict(use_crosswalk=False))),
+        ("joins receipts without the ERP number reference", dict(lot_kw=dict(use_crosswalk=False))),
         ("attributes lots on the free-text supplier field", dict(defect_kw=dict(attribute_by="field"))),
         ("plans on the October S&OP cycle", dict(demand_kw=dict(cycle="2025-10"))),
         ("sums both S&OP cycles", dict(demand_kw=dict(cycle="all"))),
@@ -186,20 +186,45 @@ def sweep(solve):
         ("charges no inbound freight", dict(build_kw=dict(charge_freight=False))),
         ("re-rates SUP-2318's whole year at 3.0%", dict(build_kw=dict(banded=False))),
         ("treats SUP-4077's rebate as earned, no shortfall", dict(build_kw=dict(threshold=False, shortfall=False))),
+        ("misses the shortfall charge alone (clause 4.1)", dict(build_kw=dict(shortfall=False))),
         ("ignores payment terms", dict(build_kw=dict(terms=False))),
         ("ignores scrap disposal", dict(build_kw=dict(scrap=False))),
         ("ignores SUP-2318's whole-box rule", dict(build_kw=dict(whole_packs=False))),
         ("multiplies by the 4-dp rounded price", dict(build_kw=dict(rounded_price=True))),
         ("reference solution", dict()),
     ]
+    # what a competent attempt that does every DOCUMENTED step but misses a
+    # judgement actually scores - the profile the model sweep produces
+    profiles = [
+        ("pools SOURCE records (the default if the log is read as one population)",
+         dict(defect_kw=dict(points=None, keep="first"))),
+        ("pools SOURCE, joins receipts on po_id as it stands",
+         dict(defect_kw=dict(points=None, keep="first"), lot_kw=dict(use_crosswalk=False))),
+        ("pools SOURCE, attributes on the free-text supplier field",
+         dict(defect_kw=dict(points=None, keep="first", attribute_by="field"))),
+        ("joins receipts on po_id as it stands, sums both plan cycles",
+         dict(lot_kw=dict(use_crosswalk=False), demand_kw=dict(cycle="all"))),
+        ("free-text attribution, October plan cycle",
+         dict(defect_kw=dict(attribute_by="field"), demand_kw=dict(cycle="2025-10"))),
+        ("every judgement right, whole-box rule and rounded price missed",
+         dict(build_kw=dict(whole_packs=False, rounded_price=True))),
+        ("every judgement right, payment terms and scrap missed",
+         dict(build_kw=dict(terms=False, scrap=False))),
+    ]
+
+    def table(title, rows_):
+        print("\n| %s | Lands on | Contract qty | Contract cost | Tests | Decision |" % title)
+        print("| --- | --- | --- | --- | --- | --- |")
+        for r in rows_:
+            print("| %s | %s | %s | USD %s | %.3f | %d / %d |" % (
+                r["label"], r["lands"], "{:,}".format(r["units"]), "{:,.2f}".format(r["total"]),
+                r["reward"], r["dec"], dec_total))
+
     results = [variant(label, **kw) for label, kw in routes]
-    print("\n| Single omission | Lands on | Contract qty | Contract cost | Tests | Decision |")
-    print("| --- | --- | --- | --- | --- | --- |")
-    for r in results:
-        print("| %s | %s | %s | USD %s | %.3f | %d / %d |" % (
-            r["label"], r["lands"], "{:,}".format(r["units"]), "{:,.2f}".format(r["total"]),
-            r["reward"], r["dec"], dec_total))
-    return results
+    table("Single omission", results)
+    combos = [variant(label, **kw) for label, kw in profiles]
+    table("Attempt profile", combos)
+    return results + combos
 
 
 def main():

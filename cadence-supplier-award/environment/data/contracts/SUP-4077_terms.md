@@ -13,7 +13,7 @@
 | Item | Value |
 | --- | --- |
 | Unit of measure | Piece |
-| Price | GBP 1.4850 per piece |
+| Price | GBP 1.4700 per piece |
 | Price basis | Firm fixed for the full contract year |
 | Currency | GBP |
 

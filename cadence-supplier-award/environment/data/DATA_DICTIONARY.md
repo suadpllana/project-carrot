@@ -13,14 +13,14 @@ the suppliers. Commercial terms are in the numbered clauses.
 
 ## `demand/forecast_2026.csv`
 
-Direct dump of the FY2026 demand cube: one row per part, month and S&OP cycle,
-plus the cube's own `TOTAL` subtotal row per part and cycle.
+Direct dump of the FY2026 demand cube, one row per part, month and S&OP
+cycle.
 
 | Column | Notes |
 | --- | --- |
 | `month` | `YYYY-MM`, or `TOTAL` on the cube's subtotal rows. |
 | `part_number` | `SP-40` (stainless valve seat) or `SP-22` (brass orifice plate). |
-| `plan_cycle` | The S&OP cycle the row belongs to, `YYYY-MM`. The cube keeps the last two cycles. |
+| `plan_cycle` | The S&OP cycle the row belongs to, `YYYY-MM`. |
 | `good_units_required` | Net demand in finished good pieces that must pass incoming inspection and reach the line. |
 | `planning_note` | Free text; populated on subtotal rows only. |
 
@@ -33,7 +33,7 @@ mart. One row per purchase order.
 
 | Column | Notes |
 | --- | --- |
-| `po_id` | The mart's reporting number, `PO-45xxx`. See `it/CHG-2025-0417_erp_cutover.md` for how this relates to the ERP number. |
+| `po_id` | The mart's reporting number for the order, `PO-45xxx`. |
 | `supplier_name` | Free text as keyed on the order. Not validated against the vendor master. |
 | `order_date`, `promised_date` | As keyed; several date styles. |
 | `currency`, `unit_price`, `uom` | Price per `uom` in `currency`; `uom` is `PIECE` or `BOX100`. |
@@ -47,38 +47,34 @@ One row per lot received against a purchase order.
 | Column | Notes |
 | --- | --- |
 | `receipt_id` | Receipt transaction. |
-| `po_id` | The purchase order number as written by the system that posted the receipt: the legacy number before the 2025-07-01 go-live, the ERP number after it. |
+| `po_id` | The purchase order number as written by the system that posted the receipt. |
 | `lot_id` | Lot identifier assigned at receiving. It is the lot identifier incoming inspection uses. |
 | `receipt_date` | Posting date. |
 | `qty_received_pieces` | Pieces received. |
 
-## `purchasing/po_crosswalk_erp_cutover.csv`
+## `purchasing/po_reference_2025.csv`
 
-Crosswalk between the mart's `PO-45xxx` reporting numbers and the ERP's
-ten-digit purchase order numbers, one row per purchase order.
+Reference extract of 2025 purchase orders as the mart holds them: reporting
+number, ERP number, responsible buyer, cost centre, commodity code and the
+payment terms text keyed on the order.
 
 ## `quality/incoming_inspection_2025.jsonl`
 
 The QMS inspection log for SP-40, one JSON object per inspection record.
-`inspection_id` is assigned by the QMS when the record is keyed, which for
-supplier-quality trip reports is on the engineer's return rather than on the
-day of inspection.
 
 | Field | Notes |
 | --- | --- |
-| `inspection_id` | QMS record number. |
-| `lot_id` | The lot inspected, the same identifier the goods receipt carries. |
+| `inspection_id` | QMS record number, assigned when the record is keyed. Unique per record. |
+| `lot_id` | The lot inspected, as identified at receiving. |
 | `inspected_on` | Date the inspection was performed. |
 | `part_number` | Always `SP-40` in this extract. |
 | `supplier` | Free text keyed by the inspector; empty or `null` where nothing was keyed. Not validated. |
-| `inspection_point` | `INCOMING`: inspection of the received lot at the Aurora dock under QP-07. `SOURCE`: inspection performed at the supplier's plant by a Cadence supplier-quality engineer before the lot is released for shipment. Pieces rejected at source are removed from the lot and replaced by the supplier before it ships, at the supplier's cost; they are not shipped, not invoiced and not received at Aurora. A source-inspected lot is inspected again on receipt under QP-07 like any other lot. |
+| `inspection_point` | `INCOMING` for the Aurora receiving dock under QP-07, `SOURCE` for an inspection performed at the supplier's plant by a Cadence supplier-quality engineer. |
 | `qty_inspected` | Pieces inspected. |
 | `qty_rejected` | Pieces found nonconforming at that inspection. |
-| `inspector` | `QA-nn` for the Aurora dock, `SQE-nn` for supplier-quality engineers. |
+| `inspector` | `QA-nn` Aurora quality, `SQE-nn` supplier quality. |
 | `defect_codes` | Nonconformance codes recorded. |
-| `disposition` | `SCRAP`: rejected pieces moved to the Aurora scrap cage (contract clause 5.4). `REPLACED_BY_SUPPLIER`: rejected pieces held back and replaced by the supplier before shipment. |
-
-The QMS has been known to key the same physical lot more than once.
+| `disposition` | Disposition of the rejected pieces as recorded by the inspector: `SCRAP` or `REPLACED_BY_SUPPLIER`. |
 
 ## `master/supplier_master.xlsx`
 
@@ -105,3 +101,8 @@ scrap disposal rates.
 ## `it/CHG-2025-0417_erp_cutover.md`
 
 The change record for the 2025-07-01 ERP go-live in purchasing and receiving.
+
+## `quality/QP-07_incoming_inspection.md`
+
+The Aurora receiving-inspection procedure: what is inspected on receipt, how
+lots are identified and how nonconforming pieces are dispositioned.

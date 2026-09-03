@@ -92,15 +92,15 @@ GOLD_NAME = {"SUP-1042": "Meridian Precision Works, LLC",
 # reported place, so the reported value is accepted only where it is this
 # figure written to the required precision.
 GOLD_PRICE = {"SUP-1042": 1.9450, "SUP-2318": 1.9313,
-              "SUP-3155": 1.8966, "SUP-4077": 1.88892}
+              "SUP-3155": 1.8966, "SUP-4077": 1.86984}
 GOLD_UNITS = {"SUP-1042": 495010, "SUP-2318": 492200,
               "SUP-3155": 517572, "SUP-4077": 497951}
 GOLD_TOTAL = {"SUP-1042": 963017.6294315069, "SUP-2318": 978330.3842,
-              "SUP-3155": 987625.9443807122, "SUP-4077": 976280.3572494108}
+              "SUP-3155": 987625.9443807122, "SUP-4077": 966923.5535681035}
 GOLD_PER_GOOD = {"SUP-1042": 1.981517756031907,
                  "SUP-2318": 2.013025481893004,
                  "SUP-3155": 2.0321521489315066,
-                 "SUP-4077": 2.0088073194432323}
+                 "SUP-4077": 1.9895546369714063}
 GOLD_RANK = {"SUP-1042": 1, "SUP-4077": 2, "SUP-2318": 3, "SUP-3155": 4}
 GOLD_DEFECTS = {
     "SUP-1042": dict(lots=60, units=180000, rejected=3276, rate=1.820),
@@ -108,7 +108,7 @@ GOLD_DEFECTS = {
     "SUP-3155": dict(lots=63, units=190000, rejected=11590, rate=6.100),
     "SUP-4077": dict(lots=61, units=182000, rejected=4368, rate=2.400),
 }
-GOLD_MARGIN = GOLD_TOTAL[RUNNER_UP] - GOLD_TOTAL[AWARD]   # 13262.73
+GOLD_MARGIN = GOLD_TOTAL[RUNNER_UP] - GOLD_TOTAL[AWARD]   # 3905.92
 REBATE_THRESHOLD_4077 = 520000
 BOX_2318 = 100
 
@@ -660,7 +660,7 @@ def test_sup1042_rate_counts_incoming_inspections_only():
 
 def test_sup3155_rate_carries_every_attributed_lot():
     """SUP-3155's worst lots are the ones a careless attribution loses: the
-    post-cutover receipts that only the ERP crosswalk resolves, and the lots
+    post-cutover receipts that only the ERP number reference resolves, and the lots
     whose free-text supplier field is blank. Both routes understate it to
     about 3.5% and hand it the award. Only an attempt that attributed every
     lot reports 63 lots and 11,590 rejected pieces."""

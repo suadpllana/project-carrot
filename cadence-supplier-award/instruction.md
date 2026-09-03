@@ -11,13 +11,12 @@ asked you for the award recommendation.
 
 Everything you have been given is in `/workspace/data/`: the four FY2026 offer
 term sheets, the FY2026 demand plan, last year's purchasing and goods-receipt
-extracts, the incoming-inspection log, the supplier master, the treasury FX
-export, the logistics tariff, the standing finance planning memo, and the data
-dictionary and IT change record that came across with the extracts. It is the
-raw handover — nothing has been reconciled or cleaned for you, the systems do
-not agree with each other about supplier names or purchase-order numbers, and
-you should expect to have to decide for yourself what is in scope and what is
-not.
+extracts, the quality log and the receiving procedure, the supplier master, the
+treasury FX export, the logistics tariff, the standing finance planning memo,
+and the data dictionary and IT change record that came across with the
+extracts. It is the raw handover — nothing has been reconciled or cleaned for
+you, the systems do not agree with each other, and you should expect to have to
+decide for yourself what bears on the question and what does not.
 
 Work out which of the four candidate suppliers Cadence should award the FY2026
 SP-40 contract to, and make the case for it.
