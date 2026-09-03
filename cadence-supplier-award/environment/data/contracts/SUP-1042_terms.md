@@ -33,7 +33,7 @@ Quoted lead time: 21 calendar days from release.
 
 ## 3. Payment terms
 
-Net 45 days from date of invoice. No cash discount is offered.
+Net 90 days from date of invoice. No cash discount is offered.
 
 ## 4. Volume
 

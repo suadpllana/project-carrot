@@ -35,7 +35,7 @@
   {
     "item": 4,
     "weight": 12,
-    "criterion": "The `## Recommendation` section of recommendation.md states the awarded supplier's FY2026 total cost as USD 963,017.63, to the cent or rounded to the nearest whole dollar.",
+    "criterion": "The `## Recommendation` section of recommendation.md states the awarded supplier's FY2026 total cost as USD 959,812.87, to the cent or rounded to the nearest whole dollar.",
     "category": "recommend",
     "verification_type": "text",
     "is_recommendation_criterion": true,
@@ -146,7 +146,7 @@
   {
     "item": 15,
     "weight": 5,
-    "criterion": "supplier_costs.csv reports quoted_price_usd_per_unit of 1.9450 for SUP-1042, 1.9313 for SUP-2318, 1.8966 for SUP-3155 and 1.8698 for SUP-4077.",
+    "criterion": "supplier_costs.csv reports quoted_price_usd_per_unit of 1.9450 for SUP-1042, 1.9096 for SUP-2318, 1.8639 for SUP-3155 and 1.8254 for SUP-4077.",
     "category": "analyze",
     "verification_type": "file_structure",
     "grades_output_files": [
@@ -166,7 +166,7 @@
   {
     "item": 17,
     "weight": 5,
-    "criterion": "supplier_costs.csv reports total_fy2026_cost_usd of 963017.63 for SUP-1042, 966923.55 for SUP-4077, 978330.38 for SUP-2318 and 987625.94 for SUP-3155.",
+    "criterion": "supplier_costs.csv reports total_fy2026_cost_usd of 959812.87 for SUP-1042, 962135.40 for SUP-4077, 972920.77 for SUP-2318 and 997031.30 for SUP-3155.",
     "category": "analyze",
     "verification_type": "file_structure",
     "grades_output_files": [
@@ -176,7 +176,7 @@
   {
     "item": 18,
     "weight": 4,
-    "criterion": "supplier_costs.csv reports cost_per_good_unit_usd of 1.9815 for SUP-1042, 1.9896 for SUP-4077, 2.0130 for SUP-2318 and 2.0322 for SUP-3155.",
+    "criterion": "supplier_costs.csv reports cost_per_good_unit_usd of 1.9749 for SUP-1042, 1.9797 for SUP-4077, 2.0019 for SUP-2318 and 2.0515 for SUP-3155.",
     "category": "analyze",
     "verification_type": "file_structure",
     "grades_output_files": [
@@ -186,7 +186,7 @@
   {
     "item": 19,
     "weight": 4,
-    "criterion": "recommendation.md states that the awarded supplier's FY2026 total cost is lower than the second-ranked supplier's by USD 3,905.92, or by that figure rounded to the nearest whole dollar, USD 3,906.",
+    "criterion": "recommendation.md states that the awarded supplier's FY2026 total cost is lower than the second-ranked supplier's by USD 2,322.53, or by that figure rounded to the nearest whole dollar, USD 2,323.",
     "category": "synthesize",
     "verification_type": "text",
     "grades_output_files": [
@@ -206,7 +206,7 @@
   {
     "item": 21,
     "weight": 4,
-    "criterion": "recommendation.md states that SUP-2318's volume rebate is applied band by band, giving USD 11,135.88 or USD 11,136, and not the USD 28,517.58 or USD 28,518 that re-rating the whole contract year at 3.0% would give.",
+    "criterion": "recommendation.md states that SUP-2318's volume rebate is applied band by band, giving USD 11,010.75 or USD 11,011, and not the USD 28,197.15 or USD 28,197 that re-rating the whole contract year at 3.0% would give.",
     "category": "analyze",
     "verification_type": "text",
     "grades_output_files": [
@@ -236,7 +236,7 @@
   {
     "item": 24,
     "weight": 3,
-    "criterion": "recommendation.md states that SUP-2318's offer is priced per 100-piece box and restates it to USD 1.9313 per piece.",
+    "criterion": "recommendation.md states that SUP-2318's offer is priced per 100-piece box and restates it to USD 1.9096 per piece.",
     "category": "analyze",
     "verification_type": "text",
     "grades_output_files": [
@@ -266,7 +266,7 @@
   {
     "item": 27,
     "weight": 3,
-    "criterion": "recommendation.md values payment terms against a Net 30 baseline at 9.0% cost of capital and gives the working-capital benefit of SUP-1042's Net 45 terms as USD 3,561.02 or USD 3,561.",
+    "criterion": "recommendation.md values payment terms against a Net 30 baseline at 9.0% cost of capital and gives the working-capital benefit of SUP-1042's Net 90 terms as USD 14,244.08 or USD 14,244.",
     "category": "analyze",
     "verification_type": "text",
     "grades_output_files": [
@@ -276,7 +276,7 @@
   {
     "item": 28,
     "weight": 3,
-    "criterion": "recommendation.md states that SUP-4077's payment terms are valued on its 2% 10 early-settlement option and gives that value as USD 14,121.94 or USD 14,122 in Cadence's favour.",
+    "criterion": "recommendation.md states that SUP-4077's 1% 10 early-settlement option is not cheaper than its standard Net 60 date, so its payment terms are valued on the standard date at USD 6,723.99 or USD 6,724 in Cadence's favour.",
     "category": "analyze",
     "verification_type": "text",
     "grades_output_files": [
@@ -286,7 +286,7 @@
   {
     "item": 29,
     "weight": 3,
-    "criterion": "recommendation.md states scrap disposal at USD 0.42 per rejected piece and gives the awarded supplier's scrap cost as USD 3,784.20 or USD 3,784.",
+    "criterion": "recommendation.md states scrap disposal at USD 1.25 per rejected piece and gives the awarded supplier's scrap cost as USD 11,262.50 or USD 11,263.",
     "category": "analyze",
     "verification_type": "text",
     "grades_output_files": [
@@ -316,7 +316,7 @@
   {
     "item": 32,
     "weight": 4,
-    "criterion": "The `## Risks and Sensitivities` section of recommendation.md gives the reject rate at which SUP-1042's FY2026 cost would match the second-ranked offer as a figure between 2.1% and 2.2%, against its observed 1.820%.",
+    "criterion": "The `## Risks and Sensitivities` section of recommendation.md gives the reject rate at which SUP-1042's FY2026 cost would match the second-ranked offer as a figure between 1.9% and 2.0%, against its observed 1.820%.",
     "category": "synthesize",
     "verification_type": "text",
     "grades_output_files": [

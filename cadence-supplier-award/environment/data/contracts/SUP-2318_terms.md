@@ -13,7 +13,7 @@
 | Item | Value |
 | --- | --- |
 | Unit of measure | Box of 100 pieces |
-| Price | EUR 178.00 per box |
+| Price | EUR 176.00 per box |
 | Price basis | Firm fixed for the full contract year |
 | Currency | EUR |
 

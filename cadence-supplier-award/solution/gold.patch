@@ -10,10 +10,10 @@ new file mode 100644
 +++ b/output/supplier_costs.csv
 @@ -0,0 +1,5 @@
 +supplier_code,supplier_name,quoted_price_usd_per_unit,units_to_purchase,total_fy2026_cost_usd,cost_per_good_unit_usd,rank
-+SUP-1042,"Meridian Precision Works, LLC",1.9450,495010,963017.63,1.9815,1
-+SUP-4077,Brackenridge Tooling Ltd,1.8698,497951,966923.55,1.9896,2
-+SUP-2318,Rheinwerk Feinmechanik GmbH,1.9313,492200,978330.38,2.0130,3
-+SUP-3155,"Talleres Nortenos, S.A. de C.V.",1.8966,517572,987625.94,2.0322,4
++SUP-1042,"Meridian Precision Works, LLC",1.9450,495010,959812.87,1.9749,1
++SUP-4077,Brackenridge Tooling Ltd,1.8254,497951,962135.40,1.9797,2
++SUP-2318,Rheinwerk Feinmechanik GmbH,1.9096,492200,972920.77,2.0019,3
++SUP-3155,"Talleres Nortenos, S.A. de C.V.",1.8639,517572,997031.30,2.0515,4
 diff --git a/output/defect_rates.csv b/output/defect_rates.csv
 new file mode 100644
 --- /dev/null
@@ -37,7 +37,7 @@ new file mode 100644
 +
 +Award the full FY2026 SP-40 volume to **Meridian Precision Works, LLC (SUP-1042)**, contracting **495,010 pieces** for the contract year.
 +
-+Its FY2026 total cost to Cadence is **USD 963017.63**, which is **USD 3905.92 lower over the contract year** than the second-ranked offer from Brackenridge Tooling Ltd (SUP-4077, USD 966923.55). On a cost-per-good-unit basis that is USD 1.9815 against USD 1.9896, a 0.41% advantage.
++Its FY2026 total cost to Cadence is **USD 959812.87**, which is **USD 2322.53 lower over the contract year** than the second-ranked offer from Brackenridge Tooling Ltd (SUP-4077, USD 962135.40). On a cost-per-good-unit basis that is USD 1.9749 against USD 1.9797, a 0.24% advantage.
 +
 +This is a single-supplier award for the full contract-year volume, as directed.
 +
@@ -47,19 +47,19 @@ new file mode 100644
 +
 +| supplier_code | supplier_name | quoted USD/piece | units to purchase | FY2026 total USD | USD per good unit | rank |
 +| --- | --- | --- | --- | --- | --- | --- |
-+| SUP-1042 | Meridian Precision Works, LLC | 1.9450 | 495,010 | 963017.63 | 1.9815 | 1 |
-+| SUP-4077 | Brackenridge Tooling Ltd | 1.8698 | 497,951 | 966923.55 | 1.9896 | 2 |
-+| SUP-2318 | Rheinwerk Feinmechanik GmbH | 1.9313 | 492,200 | 978330.38 | 2.0130 | 3 |
-+| SUP-3155 | Talleres Nortenos, S.A. de C.V. | 1.8966 | 517,572 | 987625.94 | 2.0322 | 4 |
++| SUP-1042 | Meridian Precision Works, LLC | 1.9450 | 495,010 | 959812.87 | 1.9749 | 1 |
++| SUP-4077 | Brackenridge Tooling Ltd | 1.8254 | 497,951 | 962135.40 | 1.9797 | 2 |
++| SUP-2318 | Rheinwerk Feinmechanik GmbH | 1.9096 | 492,200 | 972920.77 | 2.0019 | 3 |
++| SUP-3155 | Talleres Nortenos, S.A. de C.V. | 1.8639 | 517,572 | 997031.30 | 2.0515 | 4 |
 +
 +Cost build-up, in US dollars:
 +
 +| supplier_code | material | inbound freight | volume rebate | shortfall charge | scrap disposal | payment terms | total |
 +| --- | --- | --- | --- | --- | --- | --- | --- |
-+| SUP-1042 | 962794.45 | 0.00 | 0.00 | 0.00 | 3784.20 | -3561.02 | 963017.63 |
-+| SUP-4077 | 931088.70 | 35121.16 | 0.00 | 9816.21 | 5019.42 | -14121.94 | 966923.55 |
-+| SUP-2318 | 950585.86 | 36276.40 | -11135.88 | 0.00 | 2604.00 | 0.00 | 978330.38 |
-+| SUP-3155 | 981627.06 | 0.00 | 0.00 | 0.00 | 13260.24 | -7261.35 | 987625.94 |
++| SUP-1042 | 962794.45 | 0.00 | 0.00 | 0.00 | 11262.50 | -14244.08 | 959812.87 |
++| SUP-4077 | 908983.26 | 35121.16 | 0.00 | 9816.21 | 14938.75 | -6723.99 | 962135.40 |
++| SUP-2318 | 939905.12 | 36276.40 | -11010.75 | 0.00 | 7750.00 | 0.00 | 972920.77 |
++| SUP-3155 | 964702.45 | 0.00 | 0.00 | 0.00 | 39465.00 | -7136.16 | 997031.30 |
 +
 +SUP-2318 is bought in whole 100-piece boxes (clause 1: partial boxes are not tendered), so its purchase quantity is the grossed-up requirement rounded up to the next box.
 +
@@ -67,13 +67,13 @@ new file mode 100644
 +
 +Four things separate these offers, and none of them is the headline price.
 +
-+**Quoted price is the weakest signal.** Restated in US dollars per piece at the mandated planning rates, the recommended supplier SUP-1042 holds the *highest* quoted price of the four at USD 1.9450, against USD 1.8698 for the cheapest quote, SUP-4077. Note that SUP-2318 quotes per 100-piece box rather than per piece. Ranking on quoted price alone awards the contract to SUP-4077, and it is the wrong answer.
++**Quoted price is the weakest signal.** Restated in US dollars per piece at the mandated planning rates, the recommended supplier SUP-1042 holds the *highest* quoted price of the four at USD 1.9450, against USD 1.8254 for the cheapest quote, SUP-4077. Note that SUP-2318 quotes per 100-piece box rather than per piece. Ranking on quoted price alone awards the contract to SUP-4077, and it is the wrong answer.
 +
 +**Incoming quality decides the purchase quantity.** Rejected pieces are scrapped with no credit and no replacement under clause 5.4 of all four term sheets, so the buy quantity has to carry the loss. On 2025 incoming-inspection history the four suppliers run at SUP-1042 1.82%, SUP-2318 1.25%, SUP-3155 6.10%, SUP-4077 2.40%. That spread moves the purchase quantity by 25,372 pieces between the best and worst supplier and is the reason SUP-3155 cannot win on its low peso price.
 +
 +**Two offers are origin-term, two are delivered.** SUP-2318 and SUP-4077 are FCA at the seller's works, so Cadence pays inbound freight, duty and brokerage on those lanes: USD 36276.40 and USD 35121.16 respectively across twelve monthly shipments. SUP-1042 and SUP-3155 are DDP and carry no separate freight.
 +
-+**The Brackenridge volume terms do not pay out at our volume.** SUP-4077's 4.0% rebate is earned only at 520,000 pieces or more in the contract year (clause 4.2), and clause 4.1 commits Cadence to that same 520,000 pieces or a GBP 0.35 per piece shortfall charge. At our requirement the buy is 497,951 pieces — 22,049 short. So the rebate is worth nothing and the shortfall charge costs USD 9816.21. Its 2/10 cash discount is worth taking and is planned on, but it does not close the gap. Rheinwerk's banded rebate is also worth less than it looks: clause 4.2 rates each band separately rather than re-rating the whole year at 3.0%, which is USD 11135.88 rather than USD 28517.58.
++**The Brackenridge volume terms do not pay out at our volume.** SUP-4077's 4.0% rebate is earned only at 520,000 pieces or more in the contract year (clause 4.2), and clause 4.1 commits Cadence to that same 520,000 pieces or a GBP 0.35 per piece shortfall charge. At our requirement the buy is 497,951 pieces — 22,049 short. So the rebate is worth nothing and the shortfall charge costs USD 9816.21. Its 1% 10 cash discount is not worth taking: at 9.0% cost of capital the standard Net 60 date is USD 2071.98 cheaper, and that is what is planned on. Rheinwerk's banded rebate is also worth less than it looks: clause 4.2 rates each band separately rather than re-rating the whole year at 3.0%, which is USD 11010.75 rather than USD 28197.15.
 +
 +Netting all of it, SUP-1042 wins on total FY2026 cost despite holding the highest quoted price. SUP-4077 loses on freight, the shortfall charge and the rebate it does not earn; SUP-2318 loses on freight and a smaller rebate than its headline rate; SUP-3155 loses on the 6.10% reject rate that forces the largest buy and the largest scrap bill.
 +
@@ -99,9 +99,9 @@ new file mode 100644
 +
 +## Risks and Sensitivities
 +
-+- **The margin is 0.41% of contract value.** SUP-1042 beats SUP-4077 by USD 3905.92 on USD 963017.63 of annual spend. It is a real but not commanding lead, and it is sensitive to quality drift more than to anything else.
++- **The margin is 0.24% of contract value.** SUP-1042 beats SUP-4077 by USD 2322.53 on USD 959812.87 of annual spend. It is a real but not commanding lead, and it is sensitive to quality drift more than to anything else.
 +
-+- **Quality drift is the live risk.** SUP-1042's 2025 incoming reject rate is 1.82%. Holding everything else, its FY2026 cost matches the second-ranked offer once its reject rate reaches about 2.15%, and its clause 5 specification cap of 3.0% leaves contractual room to drift that far without breaching the agreement. Incoming quality, not price, is what this award rides on.
++- **Quality drift is the live risk.** SUP-1042's 2025 incoming reject rate is 1.82%. Holding everything else, its FY2026 cost matches the second-ranked offer once its reject rate reaches about 1.97%, and its clause 5 specification cap of 3.0% leaves contractual room to drift that far without breaching the agreement. Incoming quality, not price, is what this award rides on.
 +
 +- **The incoming rate depends on the source sort.** On the 22 SUP-1042 lots that were source-inspected in 2025, the engineer rejected 12.1% of pieces at the plant before they shipped. The low incoming rate is partly the product of that sorting; if source inspection is scaled back in FY2026, incoming quality could move toward the breakeven above. Keeping the source-inspection cadence is a condition of the award.
 +

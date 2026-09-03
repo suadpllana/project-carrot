@@ -544,7 +544,7 @@ lots are identified and how nonconforming pieces are dispositioned.
 # ---------------------------------------------------------------------------
 FX = {"USD": 1.0, "EUR": 1.0850, "GBP": 1.2720, "MXN": 0.0545}
 GOOD = 486000
-PRICE = {"SUP-1042": 1.9450, "SUP-2318": 1.7800 * 1.0850, "SUP-3155": 34.80 * 0.0545, "SUP-4077": 1.4700 * 1.2720}
+PRICE = {"SUP-1042": 1.9450, "SUP-2318": 1.7600 * 1.0850, "SUP-3155": 34.20 * 0.0545, "SUP-4077": 1.4351 * 1.2720}
 FREIGHT = {"SUP-2318": (62.0, 480.0), "SUP-4077": (58.0, 520.0)}
 
 
@@ -566,11 +566,11 @@ def total_cost(code, rate, good=GOOD):
     if code == "SUP-4077" and units >= 520000:
         reb = material * 0.04
     short = (520000 - units) * 0.35 * FX["GBP"] if code == "SUP-4077" and units < 520000 else 0.0
-    scrap = (units - good) * 0.42
-    days = {"SUP-1042": 45, "SUP-2318": 30, "SUP-3155": 60, "SUP-4077": 60}[code]
+    scrap = (units - good) * 1.25
+    days = {"SUP-1042": 90, "SUP-2318": 30, "SUP-3155": 60, "SUP-4077": 60}[code]
     terms = material * 0.09 * (30 - days) / 365.0
     if code == "SUP-4077":
-        early = -material * 0.02 + material * 0.98 * 0.09 * (30 - 10) / 365.0
+        early = -material * 0.01 + material * 0.99 * 0.09 * (30 - 10) / 365.0
         terms = min(early, terms)
     return material + frt - reb + short + scrap + terms
 

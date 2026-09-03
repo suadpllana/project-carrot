@@ -68,7 +68,7 @@ is budgeted for that supplier.
 
 Pieces rejected at incoming inspection are moved to the scrap cage and
 disposed of under the Aurora waste contract. The standing burdened rate for
-FY2026 is **USD 0.42 per rejected piece**, covering segregation, handling,
+FY2026 is **USD 1.25 per rejected piece**, covering segregation, handling,
 documentation and disposal.
 
 ## 6. Presentation

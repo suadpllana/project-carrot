@@ -13,7 +13,7 @@
 | Item | Value |
 | --- | --- |
 | Unit of measure | Piece |
-| Price | MXN 34.80 per piece |
+| Price | MXN 34.20 per piece |
 | Price basis | Firm fixed for the full contract year |
 | Currency | MXN |
 

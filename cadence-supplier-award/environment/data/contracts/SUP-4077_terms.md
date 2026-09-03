@@ -13,7 +13,7 @@
 | Item | Value |
 | --- | --- |
 | Unit of measure | Piece |
-| Price | GBP 1.4700 per piece |
+| Price | GBP 1.4351 per piece |
 | Price basis | Firm fixed for the full contract year |
 | Currency | GBP |
 
@@ -34,7 +34,7 @@ Quoted lead time: 38 calendar days from release.
 
 ## 3. Payment terms
 
-**2% 10, Net 60.** Buyer may deduct a 2.0% cash discount from the invoiced
+**1% 10, Net 60.** Buyer may deduct a 1.0% cash discount from the invoiced
 value if payment is made within 10 days of invoice date. Otherwise the full
 invoiced value is due 60 days from invoice date.
 

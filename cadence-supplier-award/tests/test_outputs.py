@@ -91,16 +91,16 @@ GOLD_NAME = {"SUP-1042": "Meridian Precision Works, LLC",
 # files. The checks below compare against these to half a unit in the last
 # reported place, so the reported value is accepted only where it is this
 # figure written to the required precision.
-GOLD_PRICE = {"SUP-1042": 1.9450, "SUP-2318": 1.9313,
-              "SUP-3155": 1.8966, "SUP-4077": 1.86984}
+GOLD_PRICE = {"SUP-1042": 1.9450, "SUP-2318": 1.9096,
+              "SUP-3155": 1.8639, "SUP-4077": 1.8254472}
 GOLD_UNITS = {"SUP-1042": 495010, "SUP-2318": 492200,
               "SUP-3155": 517572, "SUP-4077": 497951}
-GOLD_TOTAL = {"SUP-1042": 963017.6294315069, "SUP-2318": 978330.3842,
-              "SUP-3155": 987625.9443807122, "SUP-4077": 966923.5535681035}
-GOLD_PER_GOOD = {"SUP-1042": 1.981517756031907,
-                 "SUP-2318": 2.013025481893004,
-                 "SUP-3155": 2.0321521489315066,
-                 "SUP-4077": 1.9895546369714063}
+GOLD_TOTAL = {"SUP-1042": 959812.8677260275, "SUP-2318": 972920.7664,
+              "SUP-3155": 997031.2956844933, "SUP-4077": 962135.395738007}
+GOLD_PER_GOOD = {"SUP-1042": 1.9749235961440894,
+                 "SUP-2318": 2.0018945810699584,
+                 "SUP-3155": 2.0515047236306447,
+                 "SUP-4077": 1.9797024603662696}
 GOLD_RANK = {"SUP-1042": 1, "SUP-4077": 2, "SUP-2318": 3, "SUP-3155": 4}
 GOLD_DEFECTS = {
     "SUP-1042": dict(lots=60, units=180000, rejected=3276, rate=1.820),
@@ -108,7 +108,7 @@ GOLD_DEFECTS = {
     "SUP-3155": dict(lots=63, units=190000, rejected=11590, rate=6.100),
     "SUP-4077": dict(lots=61, units=182000, rejected=4368, rate=2.400),
 }
-GOLD_MARGIN = GOLD_TOTAL[RUNNER_UP] - GOLD_TOTAL[AWARD]   # 3905.92
+GOLD_MARGIN = GOLD_TOTAL[RUNNER_UP] - GOLD_TOTAL[AWARD]   # 2322.53
 REBATE_THRESHOLD_4077 = 520000
 BOX_2318 = 100
 
@@ -117,12 +117,12 @@ BOX_2318 = 100
 # suppliers that lost lose, so naming one is not enough - the statement that
 # names it has to carry one of that supplier's numbers.
 GOLD_DRIVERS = {
-    "SUP-1042": [963017.63, 1.9815, 495010, 1.820, 1.9450, 3784.20, 3561.02],
-    "SUP-2318": [978330.38, 2.0130, 492200, 1.250, 1.9313, 36276.40, 11135.88,
-                 28517.58],
-    "SUP-3155": [987625.94, 2.0322, 517572, 6.100, 1.8966, 13260.24, 7261.35],
-    "SUP-4077": [966923.55, 1.9896, 497951, 2.400, 1.8698, 35121.16, 9816.21,
-                 14121.94, 520000],
+    "SUP-1042": [959812.87, 1.9749, 495010, 1.820, 1.9450, 11262.50, 14244.08],
+    "SUP-2318": [972920.77, 2.0019, 492200, 1.250, 1.9096, 36276.40, 11010.75,
+                 28197.15, 7750.00],
+    "SUP-3155": [997031.30, 2.0515, 517572, 6.100, 1.8639, 39465.00, 7136.16],
+    "SUP-4077": [962135.40, 1.9797, 497951, 2.400, 1.8254, 35121.16, 9816.21,
+                 14938.75, 6723.99, 520000],
 }
 
 # The populations a data-quality section can report having set aside, each with
@@ -758,7 +758,7 @@ def test_sup4077_volume_terms_applied_at_frozen_demand():
         % (RUNNER_UP, rows[RUNNER_UP][3], GOLD_UNITS[RUNNER_UP], REBATE_THRESHOLD_4077))
     assert at_precision(total, GOLD_TOTAL[RUNNER_UP], DP_TOTAL), (
         "%s total_fy2026_cost_usd is %s, expected %.2f with no rebate earned, "
-        "the shortfall charge owed and the 2/10 cash discount taken"
+        "the shortfall charge owed and the standard Net 60 date planned on"
         % (RUNNER_UP, rows[RUNNER_UP][4], round(GOLD_TOTAL[RUNNER_UP], DP_TOTAL)))
 
 

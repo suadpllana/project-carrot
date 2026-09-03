@@ -35,7 +35,7 @@ ERP_GO_LIVE = "2025-07-01"                                        # it/CHG-2025-
 FX = {"USD": 1.0, "EUR": 1.0850, "GBP": 1.2720, "MXN": 0.0545}   # section 1
 WACC = 0.09                                                       # section 2
 BASELINE_DAYS = 30                                                # section 3
-SCRAP_USD_PER_REJECT = 0.42                                       # section 5
+SCRAP_USD_PER_REJECT = 1.25                                       # section 5
 
 # --- data/contracts/SUP-*_terms.md -----------------------------------------
 # price / pieces_per_uom / currency        : clause 1
@@ -48,11 +48,11 @@ CONTRACTS = {
     "SUP-1042": dict(
         currency="USD", price=1.9450, pieces_per_uom=1, whole_packs_only=False,
         buyer_pays_freight=False, freight_lane=None, shipments_per_year=12,
-        payment_days=45, cash_discount=None,
+        payment_days=90, cash_discount=None,
         rebate=None, min_volume=None, shortfall_per_piece=None,
         spec_limit_pct=3.0),
     "SUP-2318": dict(
-        currency="EUR", price=178.00, pieces_per_uom=100, whole_packs_only=True,
+        currency="EUR", price=176.00, pieces_per_uom=100, whole_packs_only=True,
         buyer_pays_freight=True, freight_lane="LANE-DE-01", shipments_per_year=12,
         payment_days=30, cash_discount=None,
         # clause 4.2: banded, each rate applies only to the volume inside its band
@@ -60,15 +60,15 @@ CONTRACTS = {
         min_volume=None, shortfall_per_piece=None,
         spec_limit_pct=2.0),
     "SUP-3155": dict(
-        currency="MXN", price=34.80, pieces_per_uom=1, whole_packs_only=False,
+        currency="MXN", price=34.20, pieces_per_uom=1, whole_packs_only=False,
         buyer_pays_freight=False, freight_lane=None, shipments_per_year=12,
         payment_days=60, cash_discount=None,
         rebate=None, min_volume=None, shortfall_per_piece=None,
         spec_limit_pct=7.0),
     "SUP-4077": dict(
-        currency="GBP", price=1.4700, pieces_per_uom=1, whole_packs_only=False,
+        currency="GBP", price=1.4351, pieces_per_uom=1, whole_packs_only=False,
         buyer_pays_freight=True, freight_lane="LANE-UK-01", shipments_per_year=12,
-        payment_days=60, cash_discount=(0.02, 10),
+        payment_days=60, cash_discount=(0.01, 10),
         # clause 4.2: 4.0% on all pieces, earned ONLY at >= 520,000 pieces
         rebate=("threshold", 520000, 0.040),
         # clause 4.1: minimum commitment with a per-piece shortfall charge
@@ -373,6 +373,12 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
     win, second = order[0], order[1]
     w, s = rows[win], rows[second]
     margin = s["total"] - w["total"]
+    # what taking SUP-4077's early-settlement discount would cost against
+    # its standard date (finance memo, section 3: plan on the cheaper)
+    spec4077, mat4077 = CONTRACTS["SUP-4077"], rows["SUP-4077"]["material"]
+    pct, day = spec4077["cash_discount"]
+    discount_penalty = ((-mat4077 * pct + mat4077 * (1 - pct) * WACC * (BASELINE_DAYS - day) / 365.0)
+                        - mat4077 * WACC * (BASELINE_DAYS - spec4077["payment_days"]) / 365.0)
 
     def line(code):
         r = rows[code]
@@ -465,15 +471,17 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
               "4.1 commits Cadence to that same 520,000 pieces or a GBP 0.35 "
               "per piece shortfall charge. At our requirement the buy is "
               "{:,} pieces — {:,} short. So the rebate is worth nothing and "
-              "the shortfall charge costs USD {}. Its 2/10 cash discount is "
-              "worth taking and is planned on, but it does not close the "
-              "gap. Rheinwerk's banded rebate is also worth less than it "
+              "the shortfall charge costs USD {}. Its 1% 10 cash discount is "
+              "not worth taking: at 9.0% cost of capital the standard Net 60 "
+              "date is USD {} cheaper, and that is what is planned on. "
+              "Rheinwerk's banded rebate is also worth less than it "
               "looks: clause 4.2 rates each band separately rather than "
               "re-rating the whole year at 3.0%, which is USD {} rather than "
               "USD {}.\n".format(
                   rows["SUP-4077"]["units"],
                   520000 - rows["SUP-4077"]["units"],
                   money(rows["SUP-4077"]["shortfall"]),
+                  money(discount_penalty),
                   money(rows["SUP-2318"]["rebate"]),
                   money(rows["SUP-2318"]["material"] * 0.03)))
     md.append("Netting all of it, {} wins on total FY2026 cost despite holding "

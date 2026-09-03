@@ -87,10 +87,10 @@ def rederive():
 
     fx = {"USD": 1.0, "EUR": 1.0850, "GBP": 1.2720, "MXN": 0.0545}
     terms = {  # price, per-uom pieces, ccy, buyer freight lane, net days, cash discount
-        "SUP-1042": (1.9450, 1, "USD", None, 45, None),
-        "SUP-2318": (178.00, 100, "EUR", "LANE-DE-01", 30, None),
-        "SUP-3155": (34.80, 1, "MXN", None, 60, None),
-        "SUP-4077": (1.4700, 1, "GBP", "LANE-UK-01", 60, (0.02, 10)),
+        "SUP-1042": (1.9450, 1, "USD", None, 90, None),
+        "SUP-2318": (176.00, 100, "EUR", "LANE-DE-01", 30, None),
+        "SUP-3155": (34.20, 1, "MXN", None, 60, None),
+        "SUP-4077": (1.4351, 1, "GBP", "LANE-UK-01", 60, (0.01, 10)),
     }
     out = {}
     for c, (price, per, ccy, lane, days, disc) in terms.items():
@@ -110,7 +110,7 @@ def rederive():
         if c == "SUP-4077" and units >= 520000:
             reb = material * 0.04
         short = (520000 - units) * 0.35 * fx["GBP"] if c == "SUP-4077" and units < 520000 else 0.0
-        scrap = (units - good) * 0.42
+        scrap = (units - good) * 1.25
         wc = material * 0.09 * (30 - days) / 365.0
         if disc:
             early = -material * disc[0] + material * (1 - disc[0]) * 0.09 * (30 - disc[1]) / 365.0

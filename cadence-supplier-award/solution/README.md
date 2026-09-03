@@ -34,26 +34,28 @@ library plus `openpyxl`, which the Dockerfile preinstalls.
 ## Ground truth
 
 **Award the FY2026 SP-40 contract to SUP-1042, Meridian Precision Works, LLC:
-495,010 pieces for USD 963,017.63.**
+495,010 pieces for USD 959,812.87.**
 
 | supplier | reject rate | units to buy | FY2026 total USD | USD / good unit | rank |
 | --- | --- | --- | --- | --- | --- |
-| SUP-1042 | 1.820% | 495,010 | 963,017.63 | 1.9815 | 1 |
-| SUP-4077 | 2.400% | 497,951 | 966,923.55 | 1.9896 | 2 |
-| SUP-2318 | 1.250% | 492,200 | 978,330.38 | 2.0130 | 3 |
-| SUP-3155 | 6.100% | 517,572 | 987,625.94 | 2.0322 | 4 |
+| SUP-1042 | 1.820% | 495,010 | 959,812.87 | 1.9749 | 1 |
+| SUP-4077 | 2.400% | 497,951 | 962,135.40 | 1.9797 | 2 |
+| SUP-2318 | 1.250% | 492,200 | 972,920.77 | 2.0019 | 3 |
+| SUP-3155 | 6.100% | 517,572 | 997,031.30 | 2.0515 | 4 |
 
 FY2026 good-unit requirement: 486,000 SP-40 pieces (the frozen November S&OP
-cycle). Winning margin over the runner-up: USD 3,905.92, or 0.41%.
+cycle). Winning margin over the runner-up: USD 2,322.53, or 0.24%.
 
 SUP-1042 holds the **highest** quoted price of the four (USD 1.9450 per piece
-against USD 1.8698 for SUP-4077) and still wins on total cost. The margin is
-deliberately under half a percent: at that width SUP-4077's clause 4.1
-shortfall charge decides the award on its own, so a reading that stops at
-clause 4.2 loses it. Every route that
-skips part of the analysis lands somewhere else — that is the point of the
-task, and `_provenance/verify_design.py` measures each route against the
-shipped verifier.
+against USD 1.8254 for SUP-4077) and still wins on total cost. The margin is
+deliberately a quarter of a percent, and the winner's edge is built from the
+terms a hurried cost model drops: its Net 90 payment terms are worth USD
+14,244 against SUP-4077's USD 6,724, and its scrap bill is USD 3,676 smaller.
+Leave out payment terms, leave out scrap, stop at clause 4.2 without clause
+4.1, or re-rate SUP-2318's rebate at a flat 3.0%, and the award goes
+elsewhere. Every route that skips part of the analysis lands somewhere else —
+that is the point of the task, and `_provenance/verify_design.py` measures
+each route against the shipped verifier.
 
 ## What the analysis has to get right
 
@@ -96,15 +98,21 @@ shipped verifier.
    lane tariff plus brokerage on twelve shipments. SUP-1042 and SUP-3155 are
    DDP and carry no separate freight.
 9. **Rebates.** SUP-2318's rebate is banded — each rate applies only to the
-   volume inside its band, USD 11,135.88 rather than USD 28,517.58 at a flat
-   3.0%. SUP-4077's 4.0% rebate is earned only at 520,000 pieces; the buy is
-   497,951, so it earns nothing and additionally owes the clause 4.1
-   shortfall charge on 22,049 pieces, USD 9,816.21 — larger than the winning
-   margin, so clause 4.1 decides the award by itself.
+   volume inside its band, USD 11,010.75 rather than USD 28,197.15 at a flat
+   3.0%; the flat reading hands SUP-2318 the award. SUP-4077's 4.0% rebate is
+   earned only at 520,000 pieces; the buy is 497,951, so it earns nothing and
+   additionally owes the clause 4.1 shortfall charge on 22,049 pieces, USD
+   9,816.21 — larger than the winning margin, so clause 4.1 decides the award
+   by itself.
 10. **Payment terms.** Valued against a Net 30 baseline at 9.0% WACC on the
-    invoiced spend. SUP-4077's 2/10 Net 60 is worth more taken than left, and
-    the discount reduces the spend base before the earlier date is valued
-    (finance memo, section 3): USD −14,121.94.
+    invoiced spend. SUP-1042's Net 90 is worth USD 14,244.08; SUP-4077's 1% 10
+    Net 60 is worth USD 6,723.99 on the standard date, and taking the discount
+    would cost USD 2,071.99 more (finance memo, section 3: plan on whichever
+    is cheaper). Leaving payment terms out of the model hands SUP-4077 the
+    award.
+11. **Scrap.** USD 1.25 per rejected piece at incoming (finance memo, section
+    5): USD 11,262.50 for SUP-1042 against USD 14,938.75 for SUP-4077. Leaving
+    it out hands SUP-4077 the award.
 
 ## Regenerating
 
