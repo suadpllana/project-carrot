@@ -1,0 +1,5 @@
+lane_id,origin,destination,mode,usd_per_1000_pieces,brokerage_usd_per_shipment,tariff_note
+LANE-DE-01,Solingen / Hamburg DE,Aurora IL USA,Ocean LCL,62.00,480.00,"Standing 2026 tariff; applicability depends on the Incoterm agreed in the supply contract"
+LANE-UK-01,Sheffield / Felixstowe GB,Aurora IL USA,Ocean LCL,58.00,520.00,"Standing 2026 tariff; applicability depends on the Incoterm agreed in the supply contract"
+LANE-MX-01,Monterrey MX,Aurora IL USA,Truck FTL,41.00,260.00,"Standing 2026 tariff; applicability depends on the Incoterm agreed in the supply contract"
+LANE-US-01,Cleveland OH USA,Aurora IL USA,Truck LTL,22.00,0.00,"Standing 2026 tariff; applicability depends on the Incoterm agreed in the supply contract"

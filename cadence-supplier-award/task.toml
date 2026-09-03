@@ -1,0 +1,41 @@
+# Task configuration.
+#
+# Only the allowlisted keys below are honored at ingest. Task category,
+# reasoning phases, licensing and fail-to-pass / pass-to-pass test tags are
+# declared on the SUBMISSION FORM, not in this file.
+schema_version = "1.1"
+
+[task]
+# Qualified name so local runs work; the platform renames the task
+# server-side.
+name = "baby-carrot/cadence-supplier-award"
+
+[metadata]
+difficulty = "hard"
+category = "analytics"
+tags = [
+  "procurement",
+  "sourcing",
+  "cost-analysis",
+  "data-reconciliation",
+  "multi-format",
+  "contract-interpretation",
+  "decision-recommendation",
+]
+# All input data is synthetic and authored for this task; no third-party or
+# sourced material is included.
+
+[agent]
+# Turn ceiling per trial (max 600).
+max_turns = 120
+# Per-trial wall clock, seconds.
+timeout_sec = 5400
+
+# [verifier] timeout is server-owned; a value set here is ignored.
+
+[environment]
+cpus = 4
+memory_mb = 8192
+storage_mb = 10240
+# Solver egress is admin-controlled and default-deny.
+allow_internet = false

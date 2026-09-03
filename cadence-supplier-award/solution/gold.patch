@@ -1,0 +1,107 @@
+Gold patch for cadence-supplier-award.
+
+Unified diff from the fresh workspace to the solved state, exactly as
+solution/solve.sh produces it. Regenerate with
+tools/make_gold_patch.py; do not hand-edit.
+
+diff --git a/output/supplier_costs.csv b/output/supplier_costs.csv
+new file mode 100644
+--- /dev/null
++++ b/output/supplier_costs.csv
+@@ -0,0 +1,5 @@
++supplier_code,supplier_name,quoted_price_usd_per_unit,units_to_purchase,total_fy2026_cost_usd,cost_per_good_unit_usd,rank
++SUP-1042,"Meridian Precision Works, LLC",1.9450,495010,963017.63,1.9815,1
++SUP-4077,Brackenridge Tooling Ltd,1.8889,497951,976373.13,2.0090,2
++SUP-2318,Rheinwerk Feinmechanik GmbH,1.9313,492152,978217.33,2.0128,3
++SUP-3155,"Talleres Nortenos, S.A. de C.V.",1.8966,517572,987625.94,2.0322,4
+diff --git a/output/defect_rates.csv b/output/defect_rates.csv
+new file mode 100644
+--- /dev/null
++++ b/output/defect_rates.csv
+@@ -0,0 +1,5 @@
++supplier_code,lots_inspected,units_inspected,units_rejected,reject_rate_pct
++SUP-1042,60,180000,3276,1.820
++SUP-2318,58,176000,2200,1.250
++SUP-3155,63,190000,11590,6.100
++SUP-4077,61,182000,4368,2.400
+diff --git a/output/recommendation.md b/output/recommendation.md
+new file mode 100644
+--- /dev/null
++++ b/output/recommendation.md
+@@ -0,0 +1,76 @@
++# FY2026 SP-40 valve-seat sourcing award
++
++Prepared for the sourcing steering committee. All figures in US dollars at the mandated FY2026 planning rates, for the full contract year 1 January – 31 December 2026.
++
++## Recommendation
++
++Award the full FY2026 SP-40 volume to **Meridian Precision Works, LLC (SUP-1042)**.
++
++Its FY2026 total cost to Cadence is **USD 963017.63**, which is **USD 13355.50 lower over the contract year** than the second-ranked offer from Brackenridge Tooling Ltd (SUP-4077, USD 976373.13). On a cost-per-good-unit basis that is USD 1.9815 against USD 2.0090, a 1.39% advantage.
++
++This is a single-supplier award for the full contract-year volume, as directed.
++
++## Cost Comparison
++
++The FY2026 good-unit requirement worked to is **486,000 SP-40 pieces** — the twelve monthly SP-40 rows of the frozen S&OP plan. The cube extract's `TOTAL` subtotal rows and all SP-22 rows are excluded; SP-22 is the FM-90 orifice plate and is sourced separately.
++
++| supplier_code | supplier_name | quoted USD/piece | units to purchase | FY2026 total USD | USD per good unit | rank |
++| --- | --- | --- | --- | --- | --- | --- |
++| SUP-1042 | Meridian Precision Works, LLC | 1.9450 | 495,010 | 963017.63 | 1.9815 | 1 |
++| SUP-4077 | Brackenridge Tooling Ltd | 1.8889 | 497,951 | 976373.13 | 2.0090 | 2 |
++| SUP-2318 | Rheinwerk Feinmechanik GmbH | 1.9313 | 492,152 | 978217.33 | 2.0128 | 3 |
++| SUP-3155 | Talleres Nortenos, S.A. de C.V. | 1.8966 | 517,572 | 987625.94 | 2.0322 | 4 |
++
++Cost build-up, in US dollars:
++
++| supplier_code | material | inbound freight | volume rebate | shortfall charge | scrap disposal | payment terms | total |
++| --- | --- | --- | --- | --- | --- | --- | --- |
++| SUP-1042 | 962794.45 | 0.00 | 0.00 | 0.00 | 3784.20 | -3561.02 | 963017.63 |
++| SUP-4077 | 940589.60 | 35121.16 | 0.00 | 9816.21 | 5019.42 | -14173.27 | 976373.13 |
++| SUP-2318 | 950493.16 | 36273.42 | -11133.09 | 0.00 | 2583.84 | 0.00 | 978217.33 |
++| SUP-3155 | 981627.06 | 0.00 | 0.00 | 0.00 | 13260.24 | -7261.35 | 987625.94 |
++
++## Basis of Decision
++
++Four things separate these offers, and none of them is the headline price.
++
++**Quoted price is the weakest signal.** Restated in US dollars per piece at the mandated planning rates, the recommended supplier SUP-1042 holds the *highest* quoted price of the four at USD 1.9450, against USD 1.8889 for the cheapest quote, SUP-4077. Note that SUP-2318 quotes per 100-piece box rather than per piece. Ranking on quoted price alone awards the contract to SUP-4077, and it is the wrong answer.
++
++**Incoming quality decides the purchase quantity.** Rejected pieces are scrapped with no credit and no replacement under clause 5.4 of all four term sheets, so the buy quantity has to carry the loss. On 2025 inspection history the four suppliers run at SUP-1042 1.82%, SUP-2318 1.25%, SUP-3155 6.10%, SUP-4077 2.40%. That spread moves the purchase quantity by 25,420 pieces between the best and worst supplier and is the reason SUP-3155 cannot win on its low peso price.
++
++**Two offers are origin-term, two are delivered.** SUP-2318 and SUP-4077 are FCA at the seller's works, so Cadence pays inbound freight, duty and brokerage on those lanes: USD 36273.42 and USD 35121.16 respectively across twelve monthly shipments. SUP-1042 and SUP-3155 are DDP and carry no separate freight.
++
++**The Brackenridge volume terms do not pay out at our volume.** SUP-4077's 4.0% rebate is earned only at 520,000 pieces or more in the contract year (clause 4.2), and clause 4.1 commits Cadence to that same 520,000 pieces or a GBP 0.35 per piece shortfall charge. At our requirement the buy is 497,951 pieces — 22,049 short. So the rebate is worth nothing and the shortfall charge costs USD 9816.21. Rheinwerk's banded rebate is also worth less than it looks: clause 4.2 rates each band separately rather than re-rating the whole year at 3.0%, which is USD 11133.09 rather than USD 28514.79.
++
++Netting all of it, SUP-1042 wins on total FY2026 cost despite holding the highest quoted price.
++
++## Data Quality and Exclusions
++
++- **Supplier identity.** Purchasing, quality and the supplier master each spell supplier names differently. Records were resolved to supplier codes through the `name_aliases` sheet of the supplier master; codes are the only stable key.
++
++- **Inspection lots attributed through the goods receipt.** The inspection log's free-text `supplier` field is blank or null on a large minority of lots and inconsistently spelled on the rest. Lots were attributed by `lot_id` through the goods receipt to the purchase order and then to the supplier code. Attributing on the free-text field instead drops the unattributed lots, and those lots are not randomly distributed: doing so understates SUP-3155's reject rate by roughly half and reverses the award.
++
++- **Double-logged inspection lots.** The inspection log contains repeated records for the same `lot_id` under different `inspection_id` values. These are one physical lot each and were deduplicated on `lot_id` before any rate was computed.
++
++- **Non-candidate supplier.** SUP-9001, Old Harbor Machine Company, appears throughout the 2025 purchasing, receipt and inspection data. It is shown as terminated 2025-09-30 in the supplier master, returned no FY2026 offer, and is excluded from the award comparison and from the defect table.
++
++- **Purchase orders.** Cancelled purchase orders have no receipts and no inspected lots and affect nothing. SP-22 purchase orders are a different part and are out of scope.
++
++- **Demand.** The planning-cube extract carries `TOTAL` subtotal rows for each part; counting them double-counts the year. Only the twelve monthly SP-40 rows were used.
++
++- **Exchange rates.** FY2026 figures use the mandated Treasury planning rates from the finance memo, not 2025 daily actuals. The 2025 daily export averages materially below the planning rates and using it would flatter the peso and sterling offers.
++
++- **Specification limits are not forecasts.** Clause 5 of each term sheet caps the acceptable reject rate; all four suppliers ran inside their cap in 2025. The caps are contractual ceilings, so observed 2025 performance was used for planning.
++
++## Risks and Sensitivities
++
++- **The margin is 1.39% of contract value.** SUP-1042 beats SUP-4077 by USD 13355.50 on USD 963017.63 of annual spend. It is a real but not commanding lead, and it is sensitive to quality drift more than to anything else.
++
++- **Quality drift is the live risk.** SUP-1042's 2025 reject rate is 1.82%. Holding everything else, its FY2026 cost matches the second-ranked offer once its reject rate reaches about 2.93%, and its clause 5 specification cap of 3.0% leaves contractual room to drift that far without breaching the agreement. Incoming quality, not price, is what this award rides on.
++
++- **Concentration.** Consolidating the part onto one supplier removes the current split and leaves no qualified running alternative. SUP-3155 offers the shortest lead time at 18 days and is the natural contingency to keep qualified.
++
++- **Currency.** The award is priced in US dollars and carries no FX exposure. The three foreign-currency offers do; the peso offer explicitly places all currency movement on Cadence. A 10% adverse move against the euro or sterling would widen this recommendation's lead, not narrow it.
++
++- **Volume.** If FY2026 SP-40 demand were to rise above roughly 520,000 good units, SUP-4077's rebate would begin to pay and its shortfall charge would disappear, which is the one demand scenario that changes the answer.
++
