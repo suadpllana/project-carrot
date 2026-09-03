@@ -19,5 +19,8 @@ plan as frozen at the November cycle. A few notes for whoever picks this up:
   purchase quantity, and it makes no allowance for supplier quality losses,
   safety stock or in-process scrap.
 - The plan is frozen for FY2026. Do not re-forecast it.
+- The cube keeps the last two S&OP cycles side by side and the dump is not
+  filtered to one of them; the `plan_cycle` column says which cycle a row
+  belongs to.
 
 Ping me if the cube export looks off and I will re-run it.

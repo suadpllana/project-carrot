@@ -10,6 +10,12 @@ figure is written down, never in what it is. The prose checks are the mirror of
 that - any wording passes, but the substance the prompt asks for has to be
 there.
 
+The decision is three figures the committee signs: the supplier, the quantity
+contracted with it and its contract-year cost. Each is reachable only through
+the whole analysis, so each carries decision weight in test_weights.json. The
+sentinel checks below the figure checks name the one population question each
+guards; they are earned only by an attempt that made that correction.
+
 Tests whose name starts with `test_penalty_` are penalties. Each is written to
 PASS only when the specific defect it names is present, so it fails on the
 reference solution and the grader charges its negative weight only when the
@@ -80,20 +86,21 @@ GOLD_NAME = {"SUP-1042": "Meridian Precision Works, LLC",
              "SUP-3155": "Talleres Nortenos, S.A. de C.V.",
              "SUP-4077": "Brackenridge Tooling Ltd"}
 
-# Reference figures UNROUNDED, ahead of the rounding instruction.md asks for.
-# The checks below compare against these to half a unit in the last reported
-# place, so the reported value is accepted only where it is this figure written
-# to the required precision.
+# Reference figures UNROUNDED, ahead of the rounding instruction.md asks for,
+# as solution/_provenance/verify_design.py re-derives them from the shipped
+# files. The checks below compare against these to half a unit in the last
+# reported place, so the reported value is accepted only where it is this
+# figure written to the required precision.
 GOLD_PRICE = {"SUP-1042": 1.9450, "SUP-2318": 1.9313,
               "SUP-3155": 1.8966, "SUP-4077": 1.88892}
-GOLD_UNITS = {"SUP-1042": 495010, "SUP-2318": 492152,
+GOLD_UNITS = {"SUP-1042": 495010, "SUP-2318": 492200,
               "SUP-3155": 517572, "SUP-4077": 497951}
-GOLD_TOTAL = {"SUP-1042": 963017.6294315069, "SUP-2318": 978217.326872,
-              "SUP-3155": 987625.9443807122, "SUP-4077": 976373.1277307947}
+GOLD_TOTAL = {"SUP-1042": 963017.6294315069, "SUP-2318": 978330.3842,
+              "SUP-3155": 987625.9443807122, "SUP-4077": 976280.3572494108}
 GOLD_PER_GOOD = {"SUP-1042": 1.981517756031907,
-                 "SUP-2318": 2.0127928536460904,
+                 "SUP-2318": 2.013025481893004,
                  "SUP-3155": 2.0321521489315066,
-                 "SUP-4077": 2.0089982052073965}
+                 "SUP-4077": 2.0088073194432323}
 GOLD_RANK = {"SUP-1042": 1, "SUP-4077": 2, "SUP-2318": 3, "SUP-3155": 4}
 GOLD_DEFECTS = {
     "SUP-1042": dict(lots=60, units=180000, rejected=3276, rate=1.820),
@@ -101,7 +108,9 @@ GOLD_DEFECTS = {
     "SUP-3155": dict(lots=63, units=190000, rejected=11590, rate=6.100),
     "SUP-4077": dict(lots=61, units=182000, rejected=4368, rate=2.400),
 }
-GOLD_MARGIN = GOLD_TOTAL[RUNNER_UP] - GOLD_TOTAL[AWARD]   # 13355.50
+GOLD_MARGIN = GOLD_TOTAL[RUNNER_UP] - GOLD_TOTAL[AWARD]   # 13262.73
+REBATE_THRESHOLD_4077 = 520000
+BOX_2318 = 100
 
 NUMERIC_OK = re.compile(r"^-?\d+(\.\d+)?$")
 
@@ -113,7 +122,6 @@ DP_PRICE, DP_TOTAL, DP_PER_GOOD, DP_RATE = 4, 2, 4, 3
 # a six-figure total is the same number written differently; a total that is
 # actually different misses by thousands.
 MONEY_SLACK = 0.50
-
 
 
 # ---------------------------------------------------------------------------
@@ -195,11 +203,6 @@ def is_whole(value):
     return abs(value - round(value)) <= 1e-9
 
 
-def states_money(text, target):
-    """The text quotes `target` US dollars, to the cent or to the dollar."""
-    return any(abs(v - target) <= MONEY_SLACK + 1e-9 for v in numbers_in(text))
-
-
 # A dollar marker directly before or after a figure: `USD 963017.63`,
 # `$963,017.63`, `963,017.63 USD`, `963,018 US dollars`.
 DOLLAR_BEFORE = r"(?:USD|US\$|\$|US dollars?)\s*"
@@ -224,6 +227,16 @@ def states_dollars(text, target):
     return any(abs(v - target) <= MONEY_SLACK + 1e-9 for v in dollar_figures(text))
 
 
+def states_money(text, target):
+    """The text quotes `target` US dollars, to the cent or to the dollar."""
+    return any(abs(v - target) <= MONEY_SLACK + 1e-9 for v in numbers_in(text))
+
+
+def states_count(text, target):
+    """The text quotes the whole number `target`, not one near it."""
+    return any(abs(v - target) < 0.5 for v in numbers_in(text))
+
+
 def statements(text):
     """The units a figure can be tied to: each table row on its own, and each
     sentence of running prose (with soft line-wraps joined first)."""
@@ -237,15 +250,6 @@ def statements(text):
     return out
 
 
-def mentions(text, code):
-    return code in text or name_key(GOLD_NAME[code]) in name_key(text)
-
-
-def states_count(text, target):
-    """The text quotes the whole number `target`, not one near it."""
-    return any(abs(v - target) < 0.5 for v in numbers_in(text))
-
-
 def name_key(text):
     """Letters and digits only, casefolded.
 
@@ -257,6 +261,10 @@ def name_key(text):
     return re.sub(r"[^a-z0-9]+", "", text.casefold())
 
 
+def mentions(text, code):
+    return code in text or name_key(GOLD_NAME[code]) in name_key(text)
+
+
 def as_float(text, default=None):
     try:
         return float(text)
@@ -266,6 +274,13 @@ def as_float(text, default=None):
 
 def decimals(value):
     return len(value.split(".")[1]) if "." in value else 0
+
+
+def rank_one_row():
+    """The attempt's own rank-1 row of supplier_costs.csv, or None."""
+    rows, _ = costs_rows()
+    top = [r for r in rows.values() if r[6].strip() in ("1", "1.0")]
+    return top[0] if len(top) == 1 else None
 
 
 # ---------------------------------------------------------------------------
@@ -339,7 +354,7 @@ def test_supplier_names_match_master():
 
 
 # ---------------------------------------------------------------------------
-# defect_rates.csv
+# defect_rates.csv - shape
 # ---------------------------------------------------------------------------
 def test_defect_rates_header_exact():
     assert DEFECTS.is_file(), "defect_rates.csv not produced"
@@ -372,6 +387,141 @@ def test_defect_rates_precision():
                 "%s %s must be an integer" % (code, DEFECTS_HEADER[idx]))
 
 
+# ---------------------------------------------------------------------------
+# recommendation.md - structure
+# ---------------------------------------------------------------------------
+def test_memo_has_required_sections_in_order():
+    """The five required sections, in order, each carrying the content the
+    prompt asks that section for - a heading over an empty or filler body is
+    not a delivered section."""
+    text = memo_text()
+    assert text.strip(), "recommendation.md missing or empty"
+    found = re.findall(r"^##\s+.+$", text, re.MULTILINE)
+    found = [h.strip() for h in found]
+    missing = [s for s in REQUIRED_SECTIONS if s not in found]
+    assert not missing, "missing required level-2 headings: %s" % missing
+    idx = [found.index(s) for s in REQUIRED_SECTIONS]
+    assert idx == sorted(idx), "required headings are out of order: %s" % found
+
+    empty = [s for s in REQUIRED_SECTIONS if not section(s).strip()]
+    assert not empty, "headings with nothing under them: %s" % empty
+
+    # the two sections whose substance nothing else here grades: why the
+    # suppliers that were not picked lose, and what would overturn the award
+    basis = section("Basis of Decision")
+    silent = [c for c in CANDIDATES if c != AWARD and not mentions(basis, c)]
+    assert not silent, (
+        "## Basis of Decision never says why %s lose" % ", ".join(silent))
+
+    risks = section("Risks and Sensitivities")
+    assert mentions(risks, AWARD), (
+        "## Risks and Sensitivities does not tie the risks to the awarded "
+        "supplier")
+    assert numbers_in(risks), (
+        "## Risks and Sensitivities quantifies nothing; it has to say what "
+        "would have to change to overturn the recommendation")
+
+
+# ---------------------------------------------------------------------------
+# the decision: supplier, contract quantity, contract-year cost
+# ---------------------------------------------------------------------------
+def test_award_is_correct_supplier():
+    rows, _ = costs_rows()
+    assert rows, "no parsable rows in supplier_costs.csv"
+    top = [c for c, r in rows.items() if r[6].strip() in ("1", "1.0")]
+    assert len(top) == 1, "expected exactly one rank-1 row, found %s" % top
+    assert top[0] == AWARD, (
+        "supplier_costs.csv ranks %s first; the FY2026 award goes to %s"
+        % (top[0], AWARD))
+
+
+def test_award_quantity_is_correct():
+    """The quantity the committee contracts: the rank-1 row's units_to_purchase.
+
+    Reachable only with the right supplier, the frozen plan cycle, the
+    incoming-only reject rate on every attributed lot and the gross-up.
+    """
+    top = rank_one_row()
+    assert top is not None, "no single rank-1 row in supplier_costs.csv"
+    got = as_float(top[3])
+    assert got is not None, "rank-1 units_to_purchase is not numeric"
+    assert is_whole(got) and int(round(got)) == GOLD_UNITS[AWARD], (
+        "the rank-1 row (%s) contracts %s pieces; the award is %d pieces of %s"
+        % (top[0], top[3], GOLD_UNITS[AWARD], AWARD))
+
+
+def test_award_total_is_correct():
+    """The contract-year cost the committee signs: the rank-1 row's total."""
+    top = rank_one_row()
+    assert top is not None, "no single rank-1 row in supplier_costs.csv"
+    got = as_float(top[4])
+    assert got is not None, "rank-1 total_fy2026_cost_usd is not numeric"
+    assert at_precision(got, GOLD_TOTAL[AWARD], DP_TOTAL), (
+        "the rank-1 row (%s) costs USD %s; the award costs USD %.2f"
+        % (top[0], top[4], round(GOLD_TOTAL[AWARD], DP_TOTAL)))
+
+
+def test_recommendation_names_correct_supplier():
+    """The memo awards the supplier its own costs file ranks first, and that
+    supplier is SUP-1042, named by code and full legal name.
+
+    A memo that mentions SUP-1042 only as the runner-up it beat has not
+    awarded it; the rank-1 row of supplier_costs.csv says who was awarded,
+    so that row has to be SUP-1042 for the mention to count.
+    """
+    body = section("Recommendation")
+    assert body.strip(), "## Recommendation section missing or empty"
+    top = rank_one_row()
+    assert top is not None, "no single rank-1 row in supplier_costs.csv"
+    assert top[0] == AWARD, (
+        "supplier_costs.csv ranks %s first, so that is the supplier this memo "
+        "awards; the award goes to %s" % (top[0], AWARD))
+    assert AWARD in body, (
+        "## Recommendation does not name the awarded supplier by its code, %s"
+        % AWARD)
+    assert name_key(GOLD_NAME[AWARD]) in name_key(body), (
+        "## Recommendation does not name the awarded supplier's legal name in "
+        "full, %r" % GOLD_NAME[AWARD])
+
+
+def test_recommendation_states_quantity_total_and_margin():
+    """The prompt asks the Recommendation section for the contract quantity,
+    the total cost in US dollars and the US-dollar margin over the runner-up."""
+    body = section("Recommendation")
+    assert body.strip(), "## Recommendation section missing or empty"
+    assert states_count(body, GOLD_UNITS[AWARD]), (
+        "## Recommendation does not state the FY2026 purchase quantity of "
+        "%d pieces" % GOLD_UNITS[AWARD])
+    assert states_dollars(body, GOLD_TOTAL[AWARD]), (
+        "## Recommendation does not state the awarded supplier's FY2026 total "
+        "cost, USD %.2f, as a US-dollar amount" % round(GOLD_TOTAL[AWARD], 2))
+    assert states_dollars(body, GOLD_MARGIN), (
+        "## Recommendation does not state the US-dollar amount by which the "
+        "award beats the second-ranked supplier over FY2026, USD %.2f"
+        % round(GOLD_MARGIN, 2))
+
+
+def test_full_ranking_correct():
+    rows, _ = costs_rows()
+    assert rows, "no parsable rows in supplier_costs.csv"
+    raw = {c: as_float(r[6]) for c, r in rows.items()}
+    assert all(v is not None and is_whole(v) for v in raw.values()), (
+        "every rank must be an integer, got %s" % {c: r[6] for c, r in rows.items()})
+    got = {c: int(round(v)) for c, v in raw.items()}
+    assert got == GOLD_RANK, "ranking is %s, expected %s" % (got, GOLD_RANK)
+
+
+def test_runner_up_identified():
+    rows, _ = costs_rows()
+    assert rows, "no parsable rows in supplier_costs.csv"
+    second = [c for c, r in rows.items() if r[6].strip() in ("2", "2.0")]
+    assert second == [RUNNER_UP], (
+        "supplier_costs.csv ranks %s second; expected %s" % (second, RUNNER_UP))
+
+
+# ---------------------------------------------------------------------------
+# defect_rates.csv - figures
+# ---------------------------------------------------------------------------
 def test_defect_rates_lot_counts_correct():
     rows, _ = defects_rows()
     assert rows, "no parsable rows in defect_rates.csv"
@@ -418,7 +568,7 @@ def test_defect_rates_values_correct():
 
 
 # ---------------------------------------------------------------------------
-# supplier_costs.csv - analysis correctness
+# supplier_costs.csv - figures
 # ---------------------------------------------------------------------------
 def test_quoted_prices_normalized():
     rows, _ = costs_rows()
@@ -445,7 +595,8 @@ def test_units_to_purchase_correct():
         assert is_whole(got) and int(round(got)) == gold, (
             "%s units_to_purchase is %s, expected exactly %d: the good-unit "
             "requirement grossed up for that supplier's own reject rate, "
-            "rounded up to the next whole piece" % (code, rows[code][3], gold))
+            "rounded up to the next whole piece (or whole pack where the "
+            "supplier sells only in packs)" % (code, rows[code][3], gold))
 
 
 def test_total_costs_correct():
@@ -487,95 +638,80 @@ def test_cost_per_good_unit_consistent_with_total():
             % (code, r[5], r[4], GOOD_UNITS, round(expect, DP_PER_GOOD)))
 
 
-def test_full_ranking_correct():
+# ---------------------------------------------------------------------------
+# sentinels - each is earned only by the population correction it names
+# ---------------------------------------------------------------------------
+def test_sup1042_rate_counts_incoming_inspections_only():
+    """The inspection log pools pre-shipment SOURCE inspections with the
+    INCOMING ones. Pieces rejected at source never ship; counting them lifts
+    SUP-1042 from 1.820% to about 3.7% and hands the award to SUP-4077. Only
+    an attempt that restricted the rate to INCOMING records reports 180,000
+    pieces inspected and 3,276 rejected."""
+    rows, _ = defects_rows()
+    assert rows and AWARD in rows, "no %s row in defect_rates.csv" % AWARD
+    units, rejected = as_float(rows[AWARD][2]), as_float(rows[AWARD][3])
+    assert units is not None and rejected is not None, "%s volumes not numeric" % AWARD
+    gold = GOLD_DEFECTS[AWARD]
+    assert int(round(units)) == gold["units"] and int(round(rejected)) == gold["rejected"], (
+        "%s is reported at %s rejected of %s inspected; the incoming record is "
+        "%d of %d - pre-shipment source inspections are not incoming rejects"
+        % (AWARD, rows[AWARD][3], rows[AWARD][2], gold["rejected"], gold["units"]))
+
+
+def test_sup3155_rate_carries_every_attributed_lot():
+    """SUP-3155's worst lots are the ones a careless attribution loses: the
+    post-cutover receipts that only the ERP crosswalk resolves, and the lots
+    whose free-text supplier field is blank. Both routes understate it to
+    about 3.5% and hand it the award. Only an attempt that attributed every
+    lot reports 63 lots and 11,590 rejected pieces."""
+    rows, _ = defects_rows()
+    assert rows and "SUP-3155" in rows, "no SUP-3155 row in defect_rates.csv"
+    lots, rejected = as_float(rows["SUP-3155"][1]), as_float(rows["SUP-3155"][3])
+    assert lots is not None and rejected is not None, "SUP-3155 figures not numeric"
+    gold = GOLD_DEFECTS["SUP-3155"]
+    assert int(round(lots)) == gold["lots"] and int(round(rejected)) == gold["rejected"], (
+        "SUP-3155 is reported on %s lots with %s rejects; every attributed lot "
+        "gives %d lots and %d rejects" % (rows["SUP-3155"][1], rows["SUP-3155"][3],
+                                          gold["lots"], gold["rejected"]))
+
+
+def test_sup4077_volume_terms_applied_at_frozen_demand():
+    """At the frozen requirement SUP-4077's buy sits below its 520,000-piece
+    threshold, so its rebate is not earned and its shortfall charge is owed.
+    The October plan cycle, the subtotal rows or an unattributed reject rate
+    push the buy past the threshold and the total drops by USD 47,000."""
     rows, _ = costs_rows()
-    assert rows, "no parsable rows in supplier_costs.csv"
-    raw = {c: as_float(r[6]) for c, r in rows.items()}
-    assert all(v is not None and is_whole(v) for v in raw.values()), (
-        "every rank must be an integer, got %s" % {c: r[6] for c, r in rows.items()})
-    got = {c: int(round(v)) for c, v in raw.items()}
-    assert got == GOLD_RANK, "ranking is %s, expected %s" % (got, GOLD_RANK)
+    assert rows and RUNNER_UP in rows, "no %s row in supplier_costs.csv" % RUNNER_UP
+    units, total = as_float(rows[RUNNER_UP][3]), as_float(rows[RUNNER_UP][4])
+    assert units is not None and total is not None, "%s figures not numeric" % RUNNER_UP
+    assert GOOD_UNITS < units < REBATE_THRESHOLD_4077, (
+        "%s units_to_purchase is %s; at the frozen requirement the buy is "
+        "%d pieces, below the %d-piece rebate threshold"
+        % (RUNNER_UP, rows[RUNNER_UP][3], GOLD_UNITS[RUNNER_UP], REBATE_THRESHOLD_4077))
+    assert at_precision(total, GOLD_TOTAL[RUNNER_UP], DP_TOTAL), (
+        "%s total_fy2026_cost_usd is %s, expected %.2f with no rebate earned, "
+        "the shortfall charge owed and the 2/10 cash discount taken"
+        % (RUNNER_UP, rows[RUNNER_UP][4], round(GOLD_TOTAL[RUNNER_UP], DP_TOTAL)))
 
 
-# ---------------------------------------------------------------------------
-# the decision
-# ---------------------------------------------------------------------------
-def test_award_is_correct_supplier():
+def test_sup2318_bought_in_whole_boxes():
+    """SUP-2318 tenders whole 100-piece boxes only (clause 1), so its
+    purchase quantity is the grossed-up requirement rounded up to a box."""
     rows, _ = costs_rows()
-    assert rows, "no parsable rows in supplier_costs.csv"
-    top = [c for c, r in rows.items() if r[6].strip() in ("1", "1.0")]
-    assert len(top) == 1, "expected exactly one rank-1 row, found %s" % top
-    assert top[0] == AWARD, (
-        "supplier_costs.csv ranks %s first; the FY2026 award goes to %s"
-        % (top[0], AWARD))
-
-
-def test_recommendation_names_correct_supplier():
-    body = section("Recommendation")
-    assert body.strip(), "## Recommendation section missing or empty"
-    assert AWARD in body, (
-        "## Recommendation does not name the awarded supplier by its code, %s"
-        % AWARD)
-    assert name_key(GOLD_NAME[AWARD]) in name_key(body), (
-        "## Recommendation does not name the awarded supplier's legal name in "
-        "full, %r" % GOLD_NAME[AWARD])
-
-
-def test_recommendation_states_total_and_margin():
-    body = section("Recommendation")
-    assert body.strip(), "## Recommendation section missing or empty"
-    assert states_dollars(body, GOLD_TOTAL[AWARD]), (
-        "## Recommendation does not state the awarded supplier's FY2026 total "
-        "cost, USD %.2f, as a US-dollar amount" % round(GOLD_TOTAL[AWARD], 2))
-    assert states_dollars(body, GOLD_MARGIN), (
-        "## Recommendation does not state the US-dollar amount by which the "
-        "award beats the second-ranked supplier over FY2026, USD %.2f"
-        % round(GOLD_MARGIN, 2))
-
-
-def test_runner_up_identified():
-    rows, _ = costs_rows()
-    assert rows, "no parsable rows in supplier_costs.csv"
-    second = [c for c, r in rows.items() if r[6].strip() in ("2", "2.0")]
-    assert second == [RUNNER_UP], (
-        "supplier_costs.csv ranks %s second; expected %s" % (second, RUNNER_UP))
+    assert rows and "SUP-2318" in rows, "no SUP-2318 row in supplier_costs.csv"
+    units = as_float(rows["SUP-2318"][3])
+    assert units is not None and is_whole(units), "SUP-2318 units_to_purchase not a whole number"
+    units = int(round(units))
+    assert units % BOX_2318 == 0, (
+        "SUP-2318 units_to_purchase is %d, not a whole number of %d-piece boxes"
+        % (units, BOX_2318))
+    assert units == GOLD_UNITS["SUP-2318"], (
+        "SUP-2318 units_to_purchase is %d, expected %d" % (units, GOLD_UNITS["SUP-2318"]))
 
 
 # ---------------------------------------------------------------------------
-# recommendation.md - structure and required content
+# recommendation.md - required content
 # ---------------------------------------------------------------------------
-def test_memo_has_required_sections_in_order():
-    """The five required sections, in order, each carrying the content the
-    prompt asks that section for - a heading over an empty or filler body is
-    not a delivered section."""
-    text = memo_text()
-    assert text.strip(), "recommendation.md missing or empty"
-    found = re.findall(r"^##\s+.+$", text, re.MULTILINE)
-    found = [h.strip() for h in found]
-    missing = [s for s in REQUIRED_SECTIONS if s not in found]
-    assert not missing, "missing required level-2 headings: %s" % missing
-    idx = [found.index(s) for s in REQUIRED_SECTIONS]
-    assert idx == sorted(idx), "required headings are out of order: %s" % found
-
-    empty = [s for s in REQUIRED_SECTIONS if not section(s).strip()]
-    assert not empty, "headings with nothing under them: %s" % empty
-
-    # the two sections whose substance nothing else here grades: why the
-    # suppliers that were not picked lose, and what would overturn the award
-    basis = section("Basis of Decision")
-    silent = [c for c in CANDIDATES if c != AWARD and not mentions(basis, c)]
-    assert not silent, (
-        "## Basis of Decision never says why %s lose" % ", ".join(silent))
-
-    risks = section("Risks and Sensitivities")
-    assert mentions(risks, AWARD), (
-        "## Risks and Sensitivities does not tie the risks to the awarded "
-        "supplier")
-    assert numbers_in(risks), (
-        "## Risks and Sensitivities quantifies nothing; it has to say what "
-        "would have to change to overturn the recommendation")
-
-
 def test_memo_states_good_unit_requirement():
     body = section("Cost Comparison")
     assert body.strip(), "## Cost Comparison section missing or empty"

@@ -6,172 +6,217 @@
     "category": "recommend",
     "verification_type": "text",
     "is_recommendation_criterion": true,
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 2,
-    "weight": 25,
+    "weight": 22,
     "criterion": "supplier_costs.csv assigns rank 1 to SUP-1042 and rank 2 to SUP-4077.",
     "category": "recommend",
     "verification_type": "file_structure",
     "is_recommendation_criterion": true,
-    "grades_output_files": ["supplier_costs.csv"]
+    "grades_output_files": [
+      "supplier_costs.csv"
+    ]
   },
   {
     "item": 3,
-    "weight": 18,
+    "weight": 16,
     "criterion": "The `## Basis of Decision` section of recommendation.md states that SUP-1042 carries the highest quoted price per piece of the four offers and still reaches the lowest FY2026 total cost.",
     "category": "recommend",
     "verification_type": "text",
     "is_recommendation_criterion": true,
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 4,
-    "weight": 14,
+    "weight": 12,
     "criterion": "The `## Basis of Decision` section of recommendation.md states that SUP-4077 earns no volume rebate and incurs a minimum-volume shortfall charge because the FY2026 purchase quantity falls below its 520,000-piece threshold.",
     "category": "recommend",
     "verification_type": "text",
     "is_recommendation_criterion": true,
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
-
   {
     "item": 5,
-    "weight": 4,
+    "weight": 2,
     "criterion": "The output directory contains all three required files: supplier_costs.csv, defect_rates.csv and recommendation.md.",
     "category": "instruction_following",
     "verification_type": "file_structure",
-    "grades_output_files": ["supplier_costs.csv", "defect_rates.csv", "recommendation.md"]
+    "grades_output_files": [
+      "supplier_costs.csv",
+      "defect_rates.csv",
+      "recommendation.md"
+    ]
   },
   {
     "item": 6,
-    "weight": 4,
+    "weight": 2,
     "criterion": "The first line of supplier_costs.csv is exactly `supplier_code,supplier_name,quoted_price_usd_per_unit,units_to_purchase,total_fy2026_cost_usd,cost_per_good_unit_usd,rank`.",
     "category": "instruction_following",
     "verification_type": "file_structure",
-    "grades_output_files": ["supplier_costs.csv"]
+    "grades_output_files": [
+      "supplier_costs.csv"
+    ]
   },
   {
     "item": 7,
-    "weight": 3,
+    "weight": 2,
     "criterion": "supplier_costs.csv contains exactly four data rows, one for each candidate supplier, ordered by rank ascending from 1 to 4.",
     "category": "instruction_following",
     "verification_type": "file_structure",
-    "grades_output_files": ["supplier_costs.csv"]
+    "grades_output_files": [
+      "supplier_costs.csv"
+    ]
   },
   {
     "item": 8,
-    "weight": 3,
+    "weight": 2,
     "criterion": "supplier_costs.csv reports quoted_price_usd_per_unit and cost_per_good_unit_usd to four decimal places and total_fy2026_cost_usd to two decimal places.",
     "category": "instruction_following",
     "verification_type": "file_structure",
-    "grades_output_files": ["supplier_costs.csv"]
+    "grades_output_files": [
+      "supplier_costs.csv"
+    ]
   },
   {
     "item": 9,
-    "weight": 3,
+    "weight": 2,
     "criterion": "Numeric fields in supplier_costs.csv and defect_rates.csv contain no currency symbols, thousands separators or percent signs, and units_to_purchase and rank are written as integers.",
     "category": "instruction_following",
     "verification_type": "file_structure",
-    "grades_output_files": ["supplier_costs.csv", "defect_rates.csv"]
+    "grades_output_files": [
+      "supplier_costs.csv",
+      "defect_rates.csv"
+    ]
   },
   {
     "item": 10,
-    "weight": 3,
+    "weight": 2,
     "criterion": "The first line of defect_rates.csv is exactly `supplier_code,lots_inspected,units_inspected,units_rejected,reject_rate_pct`.",
     "category": "instruction_following",
     "verification_type": "file_structure",
-    "grades_output_files": ["defect_rates.csv"]
+    "grades_output_files": [
+      "defect_rates.csv"
+    ]
   },
   {
     "item": 11,
-    "weight": 3,
+    "weight": 2,
     "criterion": "defect_rates.csv contains exactly four data rows sorted by supplier_code ascending, with reject_rate_pct given to three decimal places.",
     "category": "instruction_following",
     "verification_type": "file_structure",
-    "grades_output_files": ["defect_rates.csv"]
+    "grades_output_files": [
+      "defect_rates.csv"
+    ]
   },
   {
     "item": 12,
-    "weight": 4,
+    "weight": 3,
     "criterion": "recommendation.md contains the five level-2 headings `## Recommendation`, `## Cost Comparison`, `## Basis of Decision`, `## Data Quality and Exclusions` and `## Risks and Sensitivities`, spelled exactly that way and in that order.",
     "category": "instruction_following",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 13,
-    "weight": 3,
+    "weight": 2,
     "criterion": "Every monetary figure in recommendation.md is stated in US dollars.",
     "category": "instruction_following",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 14,
-    "weight": 4,
+    "weight": 3,
     "criterion": "recommendation.md awards the full FY2026 volume to one supplier and does not propose a split award, dual sourcing, a staged award or a deferral of the decision.",
     "category": "instruction_following",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 15,
-    "weight": 3,
+    "weight": 2,
     "criterion": "Every field in supplier_costs.csv and defect_rates.csv carries a value rather than being left empty or marked TBD.",
     "category": "instruction_following",
     "verification_type": "file_structure",
-    "grades_output_files": ["supplier_costs.csv", "defect_rates.csv"]
+    "grades_output_files": [
+      "supplier_costs.csv",
+      "defect_rates.csv"
+    ]
   },
-
   {
     "item": 16,
-    "weight": 5,
+    "weight": 6,
     "criterion": "The `## Cost Comparison` section of recommendation.md states, as a single number of pieces, the FY2026 SP-40 good-unit requirement the analysis worked to.",
     "category": "analyze",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 17,
-    "weight": 5,
+    "weight": 4,
     "criterion": "In every row of supplier_costs.csv, units_to_purchase is greater than the FY2026 good-unit requirement stated in recommendation.md.",
     "category": "analyze",
     "verification_type": "file_structure",
-    "grades_output_files": ["supplier_costs.csv", "recommendation.md"]
+    "grades_output_files": [
+      "supplier_costs.csv",
+      "recommendation.md"
+    ]
   },
   {
     "item": 18,
-    "weight": 4,
+    "weight": 3,
     "criterion": "recommendation.md states that pieces rejected at incoming inspection are scrapped without supplier credit or replacement, so the purchase quantity has to exceed the good-unit requirement.",
     "category": "analyze",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 19,
-    "weight": 5,
+    "weight": 4,
     "criterion": "recommendation.md states that SUP-2318's offer is priced per 100-piece box and was restated to a per-piece basis.",
     "category": "analyze",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 20,
-    "weight": 4,
+    "weight": 3,
     "criterion": "recommendation.md states that FY2026 figures use the mandated planning exchange rates rather than the 2025 daily actual rates.",
     "category": "analyze",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 21,
-    "weight": 5,
+    "weight": 4,
     "criterion": "recommendation.md states that SUP-2318 and SUP-4077 are origin-term offers on which Cadence pays inbound freight, and that SUP-1042 and SUP-3155 are delivered-duty-paid with no separately budgeted freight.",
     "category": "analyze",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 22,
@@ -179,31 +224,39 @@
     "criterion": "recommendation.md states that SUP-2318's volume rebate is applied band by band rather than re-rating the whole contract-year volume at the top rate.",
     "category": "analyze",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 23,
-    "weight": 5,
+    "weight": 6,
     "criterion": "The `## Data Quality and Exclusions` section of recommendation.md states that inspection lots were attributed to suppliers through the goods-receipt and purchase-order link rather than through the inspection log's free-text supplier field.",
     "category": "explore",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 24,
-    "weight": 4,
+    "weight": 3,
     "criterion": "The `## Data Quality and Exclusions` section of recommendation.md states that repeated inspection records sharing a lot identifier were deduplicated to one record per lot.",
     "category": "explore",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 25,
-    "weight": 4,
+    "weight": 3,
     "criterion": "The `## Data Quality and Exclusions` section of recommendation.md identifies Old Harbor Machine Company (SUP-9001) as a supplier present in the source data that is not a candidate for the FY2026 award.",
     "category": "explore",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 26,
@@ -211,39 +264,49 @@
     "criterion": "The `## Data Quality and Exclusions` section of recommendation.md states that the demand extract's TOTAL subtotal rows and its SP-22 rows were excluded from the FY2026 requirement.",
     "category": "explore",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 27,
-    "weight": 4,
+    "weight": 5,
     "criterion": "In defect_rates.csv, SUP-3155 has the highest reject_rate_pct of the four candidate suppliers and SUP-2318 has the lowest.",
     "category": "analyze",
     "verification_type": "file_structure",
-    "grades_output_files": ["defect_rates.csv"]
+    "grades_output_files": [
+      "defect_rates.csv"
+    ]
   },
   {
     "item": 28,
-    "weight": 4,
+    "weight": 3,
     "criterion": "The `## Cost Comparison` section of recommendation.md shows all four candidate suppliers, each with a FY2026 total cost and a cost per good unit.",
     "category": "synthesize",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 29,
-    "weight": 4,
+    "weight": 3,
     "criterion": "The `## Basis of Decision` section of recommendation.md gives a reason each of the three suppliers not selected loses.",
     "category": "synthesize",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 30,
-    "weight": 4,
+    "weight": 3,
     "criterion": "The `## Risks and Sensitivities` section of recommendation.md states a specific change that would overturn the recommendation.",
     "category": "synthesize",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 31,
@@ -251,24 +314,29 @@
     "criterion": "The `## Risks and Sensitivities` section of recommendation.md identifies the awarded supplier's incoming quality performance as a risk to the recommendation.",
     "category": "synthesize",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
-
   {
     "item": 32,
-    "weight": 4,
+    "weight": 3,
     "criterion": "The `## Data Quality and Exclusions` section of recommendation.md states what was excluded from the source data and why, and identifies every supplier that appears in the source data but is not a candidate for the FY2026 award.",
     "category": "explore",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 33,
-    "weight": 4,
+    "weight": 3,
     "criterion": "The `## Risks and Sensitivities` section of recommendation.md gives the risks attached to the awarded supplier, SUP-1042, and quantifies what would have to change for the recommendation to be overturned.",
     "category": "synthesize",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
     "item": 34,
@@ -276,22 +344,123 @@
     "criterion": "Every figure that recommendation.md repeats from supplier_costs.csv or defect_rates.csv agrees with the value filed there, stated to the cent or rounded to the nearest whole dollar, and not at some other value.",
     "category": "instruction_following",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md", "supplier_costs.csv", "defect_rates.csv"]
+    "grades_output_files": [
+      "recommendation.md",
+      "supplier_costs.csv",
+      "defect_rates.csv"
+    ]
   },
   {
     "item": 35,
+    "weight": 12,
+    "criterion": "The `## Recommendation` section of recommendation.md states that 495,010 pieces are to be contracted with the awarded supplier for FY2026.",
+    "category": "recommend",
+    "verification_type": "text",
+    "is_recommendation_criterion": true,
+    "grades_output_files": [
+      "recommendation.md"
+    ]
+  },
+  {
+    "item": 36,
+    "weight": 10,
+    "criterion": "The `## Recommendation` section of recommendation.md states the awarded supplier's FY2026 total cost as USD 963,017.63, to the cent or rounded to the nearest whole dollar.",
+    "category": "recommend",
+    "verification_type": "text",
+    "is_recommendation_criterion": true,
+    "grades_output_files": [
+      "recommendation.md"
+    ]
+  },
+  {
+    "item": 37,
+    "weight": 8,
+    "criterion": "The `## Data Quality and Exclusions` section of recommendation.md states that the inspection log's SOURCE records (pre-shipment inspections at the supplier's plant) were excluded from the reject rates because pieces rejected at source are replaced before shipment and are never received or invoiced, and that those lots are inspected again on receipt.",
+    "category": "explore",
+    "verification_type": "text",
+    "grades_output_files": [
+      "recommendation.md"
+    ]
+  },
+  {
+    "item": 38,
+    "weight": 8,
+    "criterion": "The `## Data Quality and Exclusions` section of recommendation.md states that goods receipts posted after the 2025-07-01 ERP go-live carry ERP purchase-order numbers that were resolved to the purchasing extract through the purchase-order crosswalk, so that lots received after go-live were attributed to their suppliers rather than dropped.",
+    "category": "explore",
+    "verification_type": "text",
+    "grades_output_files": [
+      "recommendation.md"
+    ]
+  },
+  {
+    "item": 39,
+    "weight": 6,
+    "criterion": "recommendation.md states that the FY2026 good-unit requirement was taken from the frozen November 2025 S&OP cycle only and that the demand dump's October cycle rows were excluded.",
+    "category": "explore",
+    "verification_type": "text",
+    "grades_output_files": [
+      "recommendation.md"
+    ]
+  },
+  {
+    "item": 40,
+    "weight": 4,
+    "criterion": "recommendation.md states that SUP-2318 tenders only whole 100-piece boxes and that its purchase quantity was rounded up to a whole number of boxes, 492,200 pieces.",
+    "category": "analyze",
+    "verification_type": "text",
+    "grades_output_files": [
+      "recommendation.md"
+    ]
+  },
+  {
+    "item": 41,
+    "weight": 4,
+    "criterion": "The `## Risks and Sensitivities` section of recommendation.md identifies SUP-1042's dependence on pre-shipment source sorting, with a source reject rate of roughly 12 percent, as a risk to its FY2026 incoming quality.",
+    "category": "synthesize",
+    "verification_type": "text",
+    "grades_output_files": [
+      "recommendation.md"
+    ]
+  },
+  {
+    "item": 42,
+    "weight": 6,
+    "criterion": "defect_rates.csv reports SUP-1042 on 180,000 inspected pieces with 3,276 rejected and a reject_rate_pct of 1.820, which excludes the SOURCE inspection records.",
+    "category": "analyze",
+    "verification_type": "file_structure",
+    "grades_output_files": [
+      "defect_rates.csv"
+    ]
+  },
+  {
+    "item": 43,
+    "weight": 6,
+    "criterion": "defect_rates.csv reports SUP-3155 on 63 lots with 11,590 rejected of 190,000 inspected pieces and a reject_rate_pct of 6.100.",
+    "category": "analyze",
+    "verification_type": "file_structure",
+    "grades_output_files": [
+      "defect_rates.csv"
+    ]
+  },
+  {
+    "item": 44,
     "weight": -6,
     "criterion": "PENALTY: recommendation.md cites a price, index, benchmark or cost figure attributed to a source outside the files provided in the environment.",
     "category": "instruction_following",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md"]
+    "grades_output_files": [
+      "recommendation.md"
+    ]
   },
   {
-    "item": 36,
+    "item": 45,
     "weight": -5,
     "criterion": "PENALTY: recommendation.md adds a separately budgeted inbound freight cost for a supplier whose offer it identifies as delivered-duty-paid.",
     "category": "analyze",
     "verification_type": "text",
-    "grades_output_files": ["recommendation.md", "supplier_costs.csv"]
+    "grades_output_files": [
+      "recommendation.md",
+      "supplier_costs.csv"
+    ]
   }
 ]

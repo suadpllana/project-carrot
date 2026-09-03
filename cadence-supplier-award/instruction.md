@@ -12,10 +12,12 @@ asked you for the award recommendation.
 Everything you have been given is in `/workspace/data/`: the four FY2026 offer
 term sheets, the FY2026 demand plan, last year's purchasing and goods-receipt
 extracts, the incoming-inspection log, the supplier master, the treasury FX
-export, the logistics tariff and the standing finance planning memo. It is the
+export, the logistics tariff, the standing finance planning memo, and the data
+dictionary and IT change record that came across with the extracts. It is the
 raw handover — nothing has been reconciled or cleaned for you, the systems do
-not agree with each other about supplier names, and you should expect to have
-to decide for yourself what is in scope and what is not.
+not agree with each other about supplier names or purchase-order numbers, and
+you should expect to have to decide for yourself what is in scope and what is
+not.
 
 Work out which of the four candidate suppliers Cadence should award the FY2026
 SP-40 contract to, and make the case for it.
@@ -55,7 +57,8 @@ later calculation — and only the number written into the file is rounded, to
 the precision named above. `units_to_purchase` is the whole number of pieces
 that has to be bought for the FY2026 good-unit requirement still to be covered
 in full at that supplier's own observed reject performance: round it **up** to
-the next whole piece. `supplier_name` is the master's legal name in full, legal
+the next whole piece, or to the next whole pack where a supplier's offer only
+sells whole packs. `supplier_name` is the master's legal name in full, legal
 suffix and all; punctuation and spacing may follow your own house style.
 
 ### 2. `/workspace/output/defect_rates.csv`
@@ -86,9 +89,10 @@ spelled exactly this way and in this order:
 ```
 
 - `## Recommendation` names **exactly one** awarded supplier, by both its
-  supplier code and its full legal name, and states that supplier's FY2026
-  total cost in US dollars and the US-dollar amount by which it beats the
-  second-ranked supplier over FY2026.
+  supplier code and its full legal name, and states the FY2026 purchase
+  quantity you would contract with it, that supplier's FY2026 total cost in
+  US dollars, and the US-dollar amount by which it beats the second-ranked
+  supplier over FY2026.
 - `## Cost Comparison` shows all four suppliers with the figures behind the
   ranking, including each supplier's FY2026 total cost, and states the FY2026
   good-unit requirement you worked to.
