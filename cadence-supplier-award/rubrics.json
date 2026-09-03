@@ -45,8 +45,8 @@
   },
   {
     "item": 5,
-    "weight": 6,
-    "criterion": "recommendation.md states that the inspection log's SOURCE records were excluded from the reject rates because pieces rejected at the supplier's plant are replaced before shipment and are never received, invoiced or scrapped by Cadence, and reports SUP-1042's incoming reject rate as 1.820% (a pooled rate would be roughly 3.7%).",
+    "weight": 4,
+    "criterion": "recommendation.md states that the inspection log's SOURCE records - inspections at the supplier's own plant, whose rejected pieces are replaced before the shipment is tendered and never reach Cadence - were excluded from the reject rates, and reports SUP-1042's reject_rate_pct as 1.820.",
     "category": "explore",
     "verification_type": "text",
     "grades_output_files": [
@@ -55,8 +55,8 @@
   },
   {
     "item": 6,
-    "weight": 6,
-    "criterion": "recommendation.md states that goods receipts posted after the 2025-07-01 ERP go-live carry ERP purchase-order numbers that had to be resolved to the purchasing extract's PO-45xxx numbers before lots could be attributed, and reports SUP-3155's reject rate as 6.100% on 63 lots (an unresolved join gives roughly 3.4% on 43 lots).",
+    "weight": 4,
+    "criterion": "recommendation.md states that goods receipts posted after the 2025-07-01 ERP go-live carry ERP purchase-order numbers that had to be resolved to the purchasing extract's PO-45xxx numbers before their lots could be attributed, and reports SUP-3155 on 63 inspected lots with a reject_rate_pct of 6.100.",
     "category": "explore",
     "verification_type": "text",
     "grades_output_files": [
@@ -65,8 +65,8 @@
   },
   {
     "item": 7,
-    "weight": 5,
-    "criterion": "recommendation.md states that inspection lots were attributed through lot_id to the goods receipt, the purchase order and the supplier master's alias table rather than through the log's free-text supplier field, which is blank on a large minority of lots.",
+    "weight": 4,
+    "criterion": "recommendation.md states that inspection lots were attributed through lot_id to the goods receipt, the purchase order and the supplier master's alias table, rather than through the inspection log's free-text supplier field.",
     "category": "explore",
     "verification_type": "text",
     "grades_output_files": [
@@ -125,7 +125,7 @@
   },
   {
     "item": 13,
-    "weight": 5,
+    "weight": 6,
     "criterion": "defect_rates.csv reports SUP-3155 on 63 lots and 190,000 inspected pieces with 11,590 rejected and a reject_rate_pct of 6.100.",
     "category": "analyze",
     "verification_type": "file_structure",
@@ -135,7 +135,7 @@
   },
   {
     "item": 14,
-    "weight": 4,
+    "weight": 5,
     "criterion": "defect_rates.csv reports a reject_rate_pct of 1.250 for SUP-2318 and 2.400 for SUP-4077.",
     "category": "analyze",
     "verification_type": "file_structure",
@@ -145,7 +145,7 @@
   },
   {
     "item": 15,
-    "weight": 4,
+    "weight": 5,
     "criterion": "supplier_costs.csv reports quoted_price_usd_per_unit of 1.9450 for SUP-1042, 1.9313 for SUP-2318, 1.8966 for SUP-3155 and 1.8698 for SUP-4077.",
     "category": "analyze",
     "verification_type": "file_structure",
@@ -155,7 +155,7 @@
   },
   {
     "item": 16,
-    "weight": 5,
+    "weight": 6,
     "criterion": "supplier_costs.csv reports units_to_purchase of 495,010 for SUP-1042, 492,200 for SUP-2318, 517,572 for SUP-3155 and 497,951 for SUP-4077.",
     "category": "analyze",
     "verification_type": "file_structure",
@@ -186,7 +186,7 @@
   {
     "item": 19,
     "weight": 4,
-    "criterion": "recommendation.md states that the award beats the second-ranked supplier by USD 3,905.92 over FY2026, or approximately 0.4% of contract value.",
+    "criterion": "recommendation.md states that the awarded supplier's FY2026 total cost is lower than the second-ranked supplier's by USD 3,905.92, or by that figure rounded to the nearest whole dollar, USD 3,906.",
     "category": "synthesize",
     "verification_type": "text",
     "grades_output_files": [
@@ -196,7 +196,7 @@
   {
     "item": 20,
     "weight": 4,
-    "criterion": "recommendation.md states that SUP-4077's purchase quantity of 497,951 pieces falls below its 520,000-piece threshold, so its 4.0% volume rebate is not earned and a shortfall charge of approximately USD 9,816 is owed.",
+    "criterion": "recommendation.md states that SUP-4077's FY2026 purchase quantity of 497,951 pieces falls below the 520,000-piece threshold in its offer, that its 4.0% volume rebate is therefore not earned, and that the shortfall charge owed is USD 9,816.21 or USD 9,816.",
     "category": "analyze",
     "verification_type": "text",
     "grades_output_files": [
@@ -206,7 +206,7 @@
   {
     "item": 21,
     "weight": 4,
-    "criterion": "recommendation.md states that SUP-2318's volume rebate is applied band by band rather than re-rating the whole year at 3.0%, giving approximately USD 11,136 rather than approximately USD 28,518.",
+    "criterion": "recommendation.md states that SUP-2318's volume rebate is applied band by band, giving USD 11,135.88 or USD 11,136, and not the USD 28,517.58 or USD 28,518 that re-rating the whole contract year at 3.0% would give.",
     "category": "analyze",
     "verification_type": "text",
     "grades_output_files": [
@@ -226,7 +226,7 @@
   {
     "item": 23,
     "weight": 4,
-    "criterion": "recommendation.md states that SUP-2318 and SUP-4077 are origin-term offers on which Cadence pays inbound freight of approximately USD 36,276 and USD 35,121 respectively, while SUP-1042 and SUP-3155 are delivered-duty-paid and carry no separate freight.",
+    "criterion": "recommendation.md states that Cadence pays inbound freight on the SUP-2318 and SUP-4077 lanes and none on SUP-1042's or SUP-3155's, and gives those two freight amounts as USD 36,276.40 and USD 35,121.16, or as USD 36,276 and USD 35,121.",
     "category": "analyze",
     "verification_type": "text",
     "grades_output_files": [
@@ -266,7 +266,7 @@
   {
     "item": 27,
     "weight": 3,
-    "criterion": "recommendation.md values payment terms against a Net 30 baseline at 9.0% cost of capital and reports a working-capital benefit of approximately USD 3,561 for SUP-1042's Net 45 terms.",
+    "criterion": "recommendation.md values payment terms against a Net 30 baseline at 9.0% cost of capital and gives the working-capital benefit of SUP-1042's Net 45 terms as USD 3,561.02 or USD 3,561.",
     "category": "analyze",
     "verification_type": "text",
     "grades_output_files": [
@@ -276,7 +276,7 @@
   {
     "item": 28,
     "weight": 3,
-    "criterion": "recommendation.md states that SUP-4077's 2% 10 cash discount is worth taking and values its payment terms at approximately USD 14,122 in Cadence's favour.",
+    "criterion": "recommendation.md states that SUP-4077's payment terms are valued on its 2% 10 early-settlement option and gives that value as USD 14,121.94 or USD 14,122 in Cadence's favour.",
     "category": "analyze",
     "verification_type": "text",
     "grades_output_files": [
@@ -286,7 +286,7 @@
   {
     "item": 29,
     "weight": 3,
-    "criterion": "recommendation.md states scrap disposal at USD 0.42 per rejected piece, approximately USD 3,784 for the awarded supplier and approximately USD 13,260 for SUP-3155.",
+    "criterion": "recommendation.md states scrap disposal at USD 0.42 per rejected piece and gives the awarded supplier's scrap cost as USD 3,784.20 or USD 3,784.",
     "category": "analyze",
     "verification_type": "text",
     "grades_output_files": [
@@ -316,7 +316,7 @@
   {
     "item": 32,
     "weight": 4,
-    "criterion": "The `## Risks and Sensitivities` section of recommendation.md states the reject rate at which the award's cost would match the second-ranked offer, approximately 3.3%, against SUP-1042's contractual specification limit of 3.0-3.5%.",
+    "criterion": "The `## Risks and Sensitivities` section of recommendation.md gives the reject rate at which SUP-1042's FY2026 cost would match the second-ranked offer as a figure between 2.1% and 2.2%, against its observed 1.820%.",
     "category": "synthesize",
     "verification_type": "text",
     "grades_output_files": [
@@ -326,7 +326,7 @@
   {
     "item": 33,
     "weight": 3,
-    "criterion": "The `## Risks and Sensitivities` section of recommendation.md identifies SUP-1042's dependence on pre-shipment source inspection, which rejected roughly 12% of pieces at the plant, as a risk to its incoming quality.",
+    "criterion": "The `## Risks and Sensitivities` section of recommendation.md states that SUP-1042's lots were subject to pre-shipment source inspection at its plant and gives the reject rate found at those source inspections as 12.1% or 12%.",
     "category": "synthesize",
     "verification_type": "text",
     "grades_output_files": [
@@ -346,7 +346,7 @@
   {
     "item": 35,
     "weight": 2,
-    "criterion": "The `## Risks and Sensitivities` section of recommendation.md states that FY2026 demand above roughly 520,000 good units would begin to earn SUP-4077's rebate and change the answer.",
+    "criterion": "The `## Risks and Sensitivities` section of recommendation.md states that FY2026 demand large enough to take the purchase quantity to SUP-4077's 520,000-piece threshold would change the recommendation.",
     "category": "synthesize",
     "verification_type": "text",
     "grades_output_files": [

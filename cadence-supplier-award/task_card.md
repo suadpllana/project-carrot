@@ -227,9 +227,12 @@ dictionary, QP-07, the change record and the contracts, and are never assembled
 into a conclusion. Two further changes: the winning margin was cut from 1.38%
 to **0.41%**, which makes SUP-4077's clause 4.1 shortfall charge decisive on
 its own and leaves the cost model no slack; and the rubric was rebound to
-figures — 89% of its positive weight now requires a specific value that only
+figures — 91% of its positive weight now requires a specific value that only
 the correct pipeline produces, where revision 3 paid 57% of it for narrative a
-wrong-route attempt can write just as fluently.
+wrong-route attempt can write just as fluently. Each of those criteria names
+the value and both renderings a memo may use for it (`USD 9,816.21 or USD
+9,816`), so a grader marks it from the deliverable without a tolerance of its
+own to invent.
 
 Four independent judgements now gate the answer, each landing on a different
 wrong supplier, and none of them is a checklist item:
@@ -287,16 +290,22 @@ correctly, roughly 20% of rubric weight. An attempt has to clear all four
 judgements *and* read four contract clauses exactly to score above 0.6.
 
 Free credit is small and bounded: the twelve structural checks carry 14 of 189
-test-side points and the instruction-following rubric criteria 18 of 197,
-together 8% of the 386 total. Four sentinel checks worth 34 points name the
+test-side points and the instruction-following rubric criteria 18 of 196,
+together 8% of the 385 total. Four sentinel checks worth 34 points name the
 population corrections and are earned only by an attempt that made them. The
-decision carries 39.1% of total positive weight (151 of 386), inside the
+decision carries 39.2% of total positive weight (151 of 385), inside the
 30-50% band, and none of it is reachable by naming a supplier alone: two of the
 three decision figures are the contracted quantity and the contract-year cost
 to the cent.
 
 The floor is protected: three test penalties and two rubric penalties total
-−26 against 386 positive weight, and none fires on a merely incomplete answer.
+−26 against 385 positive weight, and none fires on a merely incomplete answer.
+
+Two checks earn nothing for naming a supplier or a file: `## Basis of Decision`
+has to put one of a losing supplier's own figures, or one of the things that
+separate the offers, beside its name, and `## Data Quality and Exclusions` has
+to report at least three of the populations set aside rather than only the
+non-candidate supplier.
 
 Risk of being too hard is bounded: the deliverables are three plain files, the
 environment preinstalls what is needed to open every shipped format, every
@@ -393,7 +402,7 @@ A golden solution is included (`solution/solve.py`, `solution/solve.sh`,
 
 The verifier is 38 checks (35 positive, 3 penalties) driven by
 `tests/test_weights.json`; the rubric is 47 criteria (45 positive, 2
-penalties). Local checks: the nop agent scores 0.000, the oracle scores 1.000
+penalties), each naming the exact figure or claim it grades. Local checks: the nop agent scores 0.000, the oracle scores 1.000
 (188 of 188 positive weight, with only the three penalty checks correctly
 declining to fire), and `solution/_provenance/verify_design.py` reproduces the
 Measured table above.

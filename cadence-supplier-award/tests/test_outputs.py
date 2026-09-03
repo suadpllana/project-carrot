@@ -112,6 +112,42 @@ GOLD_MARGIN = GOLD_TOTAL[RUNNER_UP] - GOLD_TOTAL[AWARD]   # 3905.92
 REBATE_THRESHOLD_4077 = 520000
 BOX_2318 = 100
 
+# The figures that stand behind each supplier's place in the ranking: its own
+# cost build-up and its own quality. `## Basis of Decision` has to say why the
+# suppliers that lost lose, so naming one is not enough - the statement that
+# names it has to carry one of that supplier's numbers.
+GOLD_DRIVERS = {
+    "SUP-1042": [963017.63, 1.9815, 495010, 1.820, 1.9450, 3784.20, 3561.02],
+    "SUP-2318": [978330.38, 2.0130, 492200, 1.250, 1.9313, 36276.40, 11135.88,
+                 28517.58],
+    "SUP-3155": [987625.94, 2.0322, 517572, 6.100, 1.8966, 13260.24, 7261.35],
+    "SUP-4077": [966923.55, 1.9896, 497951, 2.400, 1.8698, 35121.16, 9816.21,
+                 14121.94, 520000],
+}
+
+# The populations a data-quality section can report having set aside, each with
+# the spellings an attempt might use. The prompt asks what was excluded and
+# why, so naming the non-candidate supplier alone does not answer it.
+EXCLUSION_TOPICS = {
+    "source inspections": r"source[\s-]*inspect|\bSOURCE\b|at the (?:supplier|seller)'?s? plant",
+    "the ERP renumbering": r"\bERP\b|go-?live|cut-?over|CHG-2025|po_reference|reporting number",
+    "the superseded plan cycle": r"october|plan[_\s-]*cycle|s&op cycle|superseded|frozen",
+    "the other part": r"SP-22",
+    "the cube subtotal rows": r"\bTOTAL\b|sub-?total",
+    "double-keyed lots": r"duplicat|dedup|same lot",
+    "cancelled orders": r"cancel",
+    "the daily FX export": r"daily|planning rate|fx_daily|exchange rate",
+}
+MIN_EXCLUSION_TOPICS = 3
+
+# What separates the four offers. A statement that names a supplier that lost
+# and reaches for one of these is giving a reason, whatever words it uses; a
+# statement that names it and reaches for none of them is a list entry.
+DRIVER_WORDS = (r"freight|duty|brokerage|incoterm|deliver|rebate|shortfall|"
+                r"commitment|threshold|volume|reject|quality|defect|scrap|"
+                r"price|quote|terms|discount|payment|yield|box|currency|"
+                r"exchange|lead time")
+
 NUMERIC_OK = re.compile(r"^-?\d+(\.\d+)?$")
 
 # Decimal places instruction.md fixes for each reported field.
@@ -265,6 +301,21 @@ def mentions(text, code):
     return code in text or name_key(GOLD_NAME[code]) in name_key(text)
 
 
+def carries_a_figure_of(text, code):
+    """`text` states one of `code`'s own figures.
+
+    Money and quantities are matched to the whole unit, rates and per-piece
+    figures to the last place the prompt asks for, so any rounding an attempt
+    writes its memo in still counts.
+    """
+    for value in numbers_in(text):
+        for target in GOLD_DRIVERS[code]:
+            slack = MONEY_SLACK if abs(target) >= 1000 else 0.005
+            if abs(value - target) <= slack + 1e-9:
+                return True
+    return False
+
+
 def as_float(text, default=None):
     try:
         return float(text)
@@ -411,7 +462,24 @@ def test_memo_has_required_sections_in_order():
     basis = section("Basis of Decision")
     silent = [c for c in CANDIDATES if c != AWARD and not mentions(basis, c)]
     assert not silent, (
-        "## Basis of Decision never says why %s lose" % ", ".join(silent))
+        "## Basis of Decision never names %s" % ", ".join(silent))
+    # a list of the three losers is not a reason any of them loses: the
+    # statement that names one has to carry one of that supplier's own figures
+    def explained(code):
+        for unit in statements(basis):
+            if not mentions(unit, code):
+                continue
+            if carries_a_figure_of(unit, code):
+                return True
+            if re.search(DRIVER_WORDS, unit, re.IGNORECASE):
+                return True
+        return False
+
+    unexplained = [c for c in CANDIDATES if c != AWARD and not explained(c)]
+    assert not unexplained, (
+        "## Basis of Decision names %s without a figure of its own or anything "
+        "that separates the offers beside it, so it lists them rather than "
+        "saying why they lose" % ", ".join(unexplained))
 
     risks = section("Risks and Sensitivities")
     assert mentions(risks, AWARD), (
@@ -744,11 +812,20 @@ def test_memo_cost_comparison_covers_all_four():
 
 
 def test_memo_flags_non_candidate_supplier():
+    """The prompt asks this section for what was excluded and why, and for
+    every supplier in the source data that is not a candidate."""
     body = section("Data Quality and Exclusions")
     assert body.strip(), "## Data Quality and Exclusions section missing or empty"
     assert (NON_CANDIDATE in body or "old harbor" in body.casefold()), (
         "## Data Quality and Exclusions does not identify %s, the supplier that "
         "appears in the source data but is not a candidate" % NON_CANDIDATE)
+    reported = [name for name, pattern in EXCLUSION_TOPICS.items()
+                if re.search(pattern, body, re.IGNORECASE)]
+    assert len(reported) >= MIN_EXCLUSION_TOPICS, (
+        "## Data Quality and Exclusions names %s but reports %d of the "
+        "populations set aside (%s); the section has to say what was excluded "
+        "from the source data and why"
+        % (NON_CANDIDATE, len(reported), ", ".join(reported) or "none"))
 
 
 def test_memo_totals_agree_with_costs_file():
