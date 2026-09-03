@@ -136,9 +136,13 @@ there is the natural move, and it produces a clean, confident, wrong answer.
 
 The margin is deliberately tight — 1.39% between first and second — so a
 careless computation lands on a different supplier rather than on the right one
-by default. It is not so tight that legitimate rounding differences flip it:
-the numeric tests allow ±1% on totals, and every wrong route sits at least
-1.26% away.
+by default. The numeric tests accept a figure only at the precision
+`instruction.md` asks for it — half a unit in the last reported place — and
+`instruction.md` closes the two choices that would otherwise be open, by fixing
+that intermediates are carried unrounded and that the purchase quantity rounds
+up. A correct analysis therefore lands on the asserted figure exactly rather
+than near it, while every wrong route sits at least 1.26% away, orders of
+magnitude outside that.
 
 Risk of being too hard is bounded: the deliverables are three plain files, the
 environment preinstalls what is needed to open every shipped format, and the

@@ -49,6 +49,15 @@ only: no currency symbols, no thousands separators, no percent signs, no
 quoting. Both files are RFC 4180 CSV — a text field containing a comma must be
 double-quoted, and at least one supplier's legal name does contain one.
 
+Round only what you report. Every figure is computed from unrounded
+intermediate values — do not feed a figure you have already rounded into a
+later calculation — and only the number written into the file is rounded, to
+the precision named above. `units_to_purchase` is the whole number of pieces
+that has to be bought for the FY2026 good-unit requirement still to be covered
+in full at that supplier's own observed reject performance: round it **up** to
+the next whole piece. `supplier_name` is the master's legal name in full, legal
+suffix and all; punctuation and spacing may follow your own house style.
+
 ### 2. `/workspace/output/defect_rates.csv`
 
 The incoming-inspection record for the four candidate suppliers, **exactly four
@@ -59,8 +68,9 @@ supplier_code,lots_inspected,units_inspected,units_rejected,reject_rate_pct
 ```
 
 `lots_inspected`, `units_inspected` and `units_rejected` are integers.
-`reject_rate_pct` is a percentage to 3 decimal places (for example `4.250`
-means 4.25%). The same numeric formatting rule as above applies.
+`reject_rate_pct` is the rejected pieces as a percentage of the inspected
+pieces, to 3 decimal places (for example `4.250` means 4.25%). The same numeric
+formatting and rounding rules as above apply.
 
 ### 3. `/workspace/output/recommendation.md`
 
@@ -76,18 +86,25 @@ spelled exactly this way and in this order:
 ```
 
 - `## Recommendation` names **exactly one** awarded supplier, by both its
-  supplier code and its legal name, and states that supplier's FY2026 total
-  cost in US dollars and the US-dollar amount by which it beats the
+  supplier code and its full legal name, and states that supplier's FY2026
+  total cost in US dollars and the US-dollar amount by which it beats the
   second-ranked supplier over FY2026.
 - `## Cost Comparison` shows all four suppliers with the figures behind the
-  ranking, and states the FY2026 good-unit requirement you worked to.
-- `## Basis of Decision` explains what drives the ranking and why the
-  suppliers you did not pick lose.
+  ranking, including each supplier's FY2026 total cost, and states the FY2026
+  good-unit requirement you worked to.
+- `## Basis of Decision` explains what drives the ranking and, naming each of
+  them, why the three suppliers you did not pick lose.
 - `## Data Quality and Exclusions` states what you excluded from the source
   data and why, and identifies every supplier that appears in the source data
   but is not a candidate for this award.
 - `## Risks and Sensitivities` gives the risks attached to the supplier you
-  picked and what would have to change to overturn the recommendation.
+  picked and quantifies what would have to change to overturn the
+  recommendation.
+
+Each of the five sections has to carry that content: a heading with nothing
+under it, or a line of filler, is not a section. Figures repeated in the memo
+are the figures you filed — quote them as they stand in the two CSVs, to the
+cent or rounded to the nearest whole dollar, never at some other value.
 
 ## Constraints
 
