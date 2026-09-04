@@ -62,6 +62,10 @@ tooling. Break one and the submission comes back.
    re-derivation, and refresh every figure quoted in `rubrics.json`,
    `task_card.md` and `solution/README.md`. A stale figure in the rubric is a
    silently unearnable criterion.
+7. **Ship the archive.** Fixing a task is not finished when the commit lands.
+   Build the upload archive and send the `.zip` back to whoever asked for the
+   fix — see *Delivering a fixed task* below. A description of a fix is not a
+   fix they can upload.
 
 ### Local checks
 
@@ -84,6 +88,36 @@ OUTPUT_DIR=/tmp/nop CADENCE_LOGS=/tmp/noplogs CADENCE_TESTS=$PWD/tests bash test
 `uv`, no package installs, no egress at verify time. Keep
 `tests/test_outputs.py` plain pytest-compatible (bare `def test_*` +
 `assert`) so it can also be run directly with pytest while authoring.
+
+## Delivering a fixed task
+
+**Every time a task is fixed, hand back the archive.** The platform takes a
+single ZIP, so the deliverable is that ZIP — not a commit hash, not a summary
+of what changed. Do this on every fix, without being asked again:
+
+```
+python3 scripts/package_task.py cadence-supplier-award   # -> dist/<task>.zip
+```
+
+The script lays the archive out as `docs/harbor-package-howto.md` specifies —
+one top-level directory named after the task — drops `__pycache__` and the
+other local caches, and refuses to build if a file that is required at upload
+is missing. `dist/` is gitignored; the archive is a build output, not a
+tracked artifact.
+
+Order matters. Build the archive **after** the local checks pass, then verify
+the archive itself rather than the working tree, because that is what actually
+gets uploaded:
+
+```
+unzip -q dist/cadence-supplier-award.zip -d /tmp/zipcheck
+cd /tmp/zipcheck/cadence-supplier-award
+CADENCE_DATA=$PWD/environment/data CADENCE_OUT=/tmp/zo bash solution/solve.sh
+OUTPUT_DIR=/tmp/zo CADENCE_LOGS=/tmp/zol CADENCE_TESTS=$PWD/tests bash tests/test.sh
+```
+
+Then send the `.zip` itself. Say in one line what moved and what the local
+checks and the mutation sweep now measure, so the numbers arrive with the file.
 
 ## Git
 

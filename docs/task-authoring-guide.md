@@ -34,7 +34,10 @@ Every task is an immutable, executable package with four load-bearing parts.
    the verifier.
 2. **Test it yourself.** Run both local checks before every submission: the nop
    agent must score 0 and the oracle agent must score full marks against the
-   exact archive you upload.
+   **exact archive you upload** — build the ZIP, extract it somewhere clean,
+   and run the checks there, not against your working tree. `python3
+   scripts/package_task.py <task>` builds it. Whenever a task is fixed, that
+   ZIP is the deliverable: hand it over, not a description of the fix.
 3. **Submit the archive.** The platform re-validates everything server-side:
    format and quality checks, then a rebuild, then the same two agent checks
    you ran locally, then a task-quality audit of the prompt, rubric, tests and
