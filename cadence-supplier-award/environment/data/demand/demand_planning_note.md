@@ -13,6 +13,9 @@ this up:
 - The extract is a **direct dump from the planning cube**, so it carries the
   cube's own subtotal rows as well as the monthly detail. It has not been
   cleaned.
+- The cube publishes a **rolling fifteen-month horizon** and the dump is the
+  whole horizon as the cube held it at the close of the cycle; it is not cut
+  down to any particular period.
 - Two parts share the extract because they run on the same cell. **SP-40** is
   the stainless valve seat that goes into the FM-200 series. **SP-22** is the
   brass orifice plate for the legacy FM-90 line; it is sourced on a separate

@@ -1,0 +1,43 @@
+[
+  {
+    "item": 1,
+    "weight": 40,
+    "criterion": "The final memo states one clear recommended action that matches the supported conclusion.",
+    "category": "recommend",
+    "verification_type": "text",
+    "is_recommendation_criterion": true,
+    "grades_output_files": ["recommendation.md"]
+  },
+  {
+    "item": 2,
+    "weight": 20,
+    "criterion": "The analysis quantifies the primary effect with figures traceable to the provided inputs.",
+    "category": "analyze",
+    "verification_type": "code_execution",
+    "grades_output_files": ["recommendation.md", "analysis/*.csv"]
+  },
+  {
+    "item": 3,
+    "weight": 20,
+    "criterion": "The analysis tests a plausible alternative explanation using relevant evidence.",
+    "category": "hypothesize",
+    "verification_type": "text",
+    "grades_output_files": ["recommendation.md"]
+  },
+  {
+    "item": 4,
+    "weight": 20,
+    "criterion": "The final deliverables synthesize the evidence into a concise decision rationale.",
+    "category": "synthesize",
+    "verification_type": "text",
+    "grades_output_files": ["recommendation.md"]
+  },
+  {
+    "item": 5,
+    "weight": -10,
+    "criterion": "PENALTY: the final memo makes a causal claim that the provided evidence cannot support.",
+    "category": "instruction_following",
+    "verification_type": "text",
+    "grades_output_files": ["recommendation.md"]
+  }
+]

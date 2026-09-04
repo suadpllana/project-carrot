@@ -1,0 +1,38 @@
+# Task configuration (placeholder — replace every "replace" marker).
+# Only the allowlisted keys shown here are honored at ingest. Anything else is
+# dropped and reported, and executable keys (docker_image, mcp_servers, env
+# tables, ...) are refused outright — the platform re-derives runtime facts
+# server-side and renders its own runner-facing file.
+#
+# Task category, reasoning phases, licensing, and fail-to-pass /
+# pass-to-pass test tags are declared on the SUBMISSION FORM, not in this
+# file.
+schema_version = "1.1"
+
+[task]
+# Qualified name so local runs work; the platform renames the task
+# server-side, so the value past the slash is yours to pick.
+name = "baby-carrot/replace-me"
+
+[metadata]
+# Display-only strings (max 200 chars each).
+difficulty = "hard"
+category = "analytics"
+tags = []
+# source = "Where sourced input data came from — replace or delete."
+
+[agent]
+# Turn ceiling per trial (max 600).
+max_turns = 120
+# Per-trial wall clock, seconds. 5400 (90 minutes) is the long-horizon default.
+timeout_sec = 5400
+
+# [verifier] timeout is server-owned; a value set here is ignored.
+
+[environment]
+cpus = 4
+memory_mb = 8192
+storage_mb = 10240
+# Solver egress is admin-controlled and default-deny; the archive cannot
+# enable it. Must be absent or false.
+allow_internet = false

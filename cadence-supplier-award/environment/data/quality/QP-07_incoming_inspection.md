@@ -33,21 +33,30 @@ validated against the vendor master.
 
 ## 4. Disposition of nonconforming pieces
 
-Pieces found nonconforming at receiving inspection are moved to the scrap cage
-and disposed of under the Aurora waste contract at the burdened rate set by
-Corporate FP&A. Under the standing supply agreements the supplier issues no
-credit and no replacement for pieces rejected at receiving inspection, and the
-quantity is not re-ordered automatically: cover for the shortfall is a
-planning matter, not a receiving one.
+Pieces found nonconforming at receiving inspection are dispositioned by
+Quality, and the inspection record carries the disposition that was applied to
+the pieces.
+
+Where the seller has issued a return authorisation and the return movement is
+commercially practical, the pieces are packed back to the seller against that
+authorisation and leave the Aurora site on the next outbound consolidation.
+Where it is not, the pieces are moved to the scrap cage and disposed of under
+the Aurora waste contract at the burdened rate set by Corporate FP&A.
+
+Receiving raises no automatic re-order under either disposition. What the
+seller owes Cadence for pieces dispositioned either way is a commercial
+question governed by the supply agreement, not by this procedure, and cover
+for any shortfall against the build plan is a planning matter.
 
 ## 5. Source inspection at supplier plants
 
 Where the commodity team has placed a supplier on source inspection, a Cadence
 supplier-quality engineer inspects the lot at the supplier's plant before it
-is released for shipment. Pieces found nonconforming there are held back at
-the plant and replaced by the supplier at its own cost before the shipment is
-tendered; they are not shipped to Aurora and do not appear on the supplier's
-invoice.
+is released for shipment. Pieces found nonconforming there are scrapped or
+reworked at the seller's plant, at the seller's cost, and the seller makes the
+tendered quantity good before the shipment is released; they are not shipped
+to Aurora, are never received against a purchase order, and do not appear on
+the seller's invoice.
 
 Source-inspection trip reports are entered into the same QMS log as receiving
 inspections, under the engineer's own inspector identifier, and are keyed on

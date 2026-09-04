@@ -3,7 +3,7 @@
 **Buyer:** Cadence Instruments LLC, Aurora IL, USA
 **Seller:** Brackenridge Tooling Ltd (supplier code SUP-4077)
 **Part:** SP-40 stainless valve seat
-**Contract year:** 1 January 2026 – 31 December 2026
+**Contract year:** 1 April 2026 – 31 March 2027 (Buyer's FY2026)
 **Status:** Offer received 2025-11-17. Signature pending award decision.
 
 ---
@@ -13,7 +13,7 @@
 | Item | Value |
 | --- | --- |
 | Unit of measure | Piece |
-| Price | GBP 1.4351 per piece |
+| Price | GBP 1.4076 per piece |
 | Price basis | Firm fixed for the full contract year |
 | Currency | GBP |
 
@@ -64,18 +64,25 @@ Buyer's right to reject a lot and to invoke the corrective-action provisions of
 clause 7; it is not a forecast, guarantee or estimate of the nonconforming rate
 Seller will achieve in any period.
 
-**Disposition of nonconforming pieces (clause 5.4).** Pieces rejected at
-Buyer's incoming inspection are scrapped by Buyer. Seller provides no credit,
-no replacement and no warranty allowance for rejected pieces. Buyer is
-responsible for ordering sufficient quantity to meet its net good-unit
-requirement. Rejected pieces count toward the volume commitment in clause 4.1
-and toward the rebate threshold in clause 4.2, both of which are measured on
-pieces purchased.
+**Disposition of nonconforming pieces (clause 5.4).** Pieces found
+nonconforming at Buyer's incoming inspection are dispositioned by Buyer under
+its own receiving procedure. Where Buyer returns the pieces to Seller against a
+return authorisation, Seller bears the return freight and replaces the pieces
+at its own cost within the contract year; replacement pieces are not separately
+invoiced and are not counted as pieces purchased under this agreement. Where
+Buyer scraps the pieces, Seller issues no credit, no replacement and no
+warranty allowance, and the pieces are a loss to Buyer. Buyer is responsible
+for ordering sufficient quantity to meet its net good-unit requirement.
+
+**Pieces purchased (clause 5.5).** For the purposes of clauses 4.1 and 4.2,
+pieces purchased in the contract year are the pieces invoiced by Seller in that
+contract year. Pieces rejected by Buyer at incoming inspection remain pieces
+purchased; pieces supplied by Seller as replacements under clause 5.4 are not.
 
 ## 6. Term and termination
 
-Twelve months. Either party may terminate for convenience on 90 days' written
-notice.
+Twelve months from 1 April 2026. Either party may terminate for convenience on
+90 days' written notice.
 
 ## 7. Corrective action
 
