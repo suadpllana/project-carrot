@@ -54,81 +54,81 @@
   },
   {
     "test_name": "test_award_quantity_is_correct",
-    "weight": 20,
+    "weight": 17,
     "decision": true
   },
   {
     "test_name": "test_award_total_is_correct",
-    "weight": 20,
+    "weight": 17,
     "decision": true
   },
   {
     "test_name": "test_recommendation_names_correct_supplier",
-    "weight": 8,
+    "weight": 6,
     "decision": true
   },
   {
     "test_name": "test_recommendation_states_quantity_total_and_margin",
-    "weight": 12,
+    "weight": 9,
     "decision": true
   },
   {
     "test_name": "test_full_ranking_correct",
-    "weight": 5,
-    "decision": true
-  },
-  {
-    "test_name": "test_runner_up_identified",
     "weight": 4,
     "decision": true
   },
   {
-    "test_name": "test_defect_rates_lot_counts_correct",
-    "weight": 4
+    "test_name": "test_runner_up_identified",
+    "weight": 3,
+    "decision": true
   },
   {
-    "test_name": "test_defect_rates_volumes_correct",
+    "test_name": "test_defect_rates_lot_counts_correct",
     "weight": 5
   },
   {
-    "test_name": "test_defect_rates_values_correct",
-    "weight": 6
-  },
-  {
-    "test_name": "test_quoted_prices_normalized",
-    "weight": 4
-  },
-  {
-    "test_name": "test_units_to_purchase_correct",
-    "weight": 6
-  },
-  {
-    "test_name": "test_total_costs_correct",
+    "test_name": "test_defect_rates_volumes_correct",
     "weight": 7
   },
   {
-    "test_name": "test_cost_per_good_unit_correct",
-    "weight": 4
-  },
-  {
-    "test_name": "test_cost_per_good_unit_consistent_with_total",
-    "weight": 2
-  },
-  {
-    "test_name": "test_sup1042_rate_counts_incoming_inspections_only",
-    "weight": 10
-  },
-  {
-    "test_name": "test_sup3155_rate_carries_every_attributed_lot",
-    "weight": 10
-  },
-  {
-    "test_name": "test_sup4077_volume_terms_applied_at_frozen_demand",
+    "test_name": "test_defect_rates_values_correct",
     "weight": 8
   },
   {
-    "test_name": "test_sup2318_bought_in_whole_boxes",
+    "test_name": "test_quoted_prices_normalized",
     "weight": 6
+  },
+  {
+    "test_name": "test_units_to_purchase_correct",
+    "weight": 8
+  },
+  {
+    "test_name": "test_total_costs_correct",
+    "weight": 10
+  },
+  {
+    "test_name": "test_cost_per_good_unit_correct",
+    "weight": 6
+  },
+  {
+    "test_name": "test_cost_per_good_unit_consistent_with_total",
+    "weight": 1
+  },
+  {
+    "test_name": "test_sup1042_rate_counts_incoming_inspections_only",
+    "weight": 12
+  },
+  {
+    "test_name": "test_sup3155_rate_carries_every_attributed_lot",
+    "weight": 12
+  },
+  {
+    "test_name": "test_sup4077_volume_terms_applied_at_frozen_demand",
+    "weight": 10
+  },
+  {
+    "test_name": "test_sup2318_bought_in_whole_boxes",
+    "weight": 7
   },
   {
     "test_name": "test_cost_buildup_file_exists",
@@ -136,15 +136,15 @@
   },
   {
     "test_name": "test_cost_buildup_header_and_shape",
-    "weight": 3
+    "weight": 2
   },
   {
     "test_name": "test_cost_buildup_sums_to_the_filed_total",
-    "weight": 6
+    "weight": 2
   },
   {
     "test_name": "test_cost_buildup_charges_the_policy_elements",
-    "weight": 12
+    "weight": 18
   },
   {
     "test_name": "test_memo_states_good_unit_requirement",

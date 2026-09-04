@@ -1,7 +1,7 @@
 [
   {
     "item": 1,
-    "weight": 20,
+    "weight": 16,
     "criterion": "The `## Recommendation` section of recommendation.md names Meridian Precision Works, LLC (SUP-1042) as the single supplier awarded the FY2026 SP-40 contract.",
     "category": "recommend",
     "verification_type": "text",
@@ -12,7 +12,7 @@
   },
   {
     "item": 2,
-    "weight": 14,
+    "weight": 11,
     "criterion": "supplier_costs.csv assigns rank 1 to SUP-1042 and rank 2 to SUP-4077.",
     "category": "recommend",
     "verification_type": "file_structure",
@@ -23,7 +23,7 @@
   },
   {
     "item": 3,
-    "weight": 12,
+    "weight": 10,
     "criterion": "The `## Recommendation` section of recommendation.md states the FY2026 purchase quantity to be contracted with the awarded supplier as 495,010 pieces.",
     "category": "recommend",
     "verification_type": "text",
@@ -34,7 +34,7 @@
   },
   {
     "item": 4,
-    "weight": 12,
+    "weight": 10,
     "criterion": "The `## Recommendation` section of recommendation.md states the awarded supplier's FY2026 total cost as USD 959,812.87, to the cent or rounded to the nearest whole dollar.",
     "category": "recommend",
     "verification_type": "text",
@@ -125,7 +125,7 @@
   },
   {
     "item": 13,
-    "weight": 6,
+    "weight": 7,
     "criterion": "defect_rates.csv reports SUP-3155 on 63 lots and 190,000 inspected pieces with 11,590 rejected and a reject_rate_pct of 6.100.",
     "category": "analyze",
     "verification_type": "file_structure",
@@ -135,7 +135,7 @@
   },
   {
     "item": 14,
-    "weight": 5,
+    "weight": 7,
     "criterion": "defect_rates.csv reports a reject_rate_pct of 1.250 for SUP-2318 and 2.400 for SUP-4077.",
     "category": "analyze",
     "verification_type": "file_structure",
@@ -145,7 +145,7 @@
   },
   {
     "item": 15,
-    "weight": 5,
+    "weight": 6,
     "criterion": "supplier_costs.csv reports quoted_price_usd_per_unit of 1.9450 for SUP-1042, 1.9096 for SUP-2318, 1.8639 for SUP-3155 and 1.8254 for SUP-4077.",
     "category": "analyze",
     "verification_type": "file_structure",
@@ -155,7 +155,7 @@
   },
   {
     "item": 16,
-    "weight": 6,
+    "weight": 7,
     "criterion": "supplier_costs.csv reports units_to_purchase of 495,010 for SUP-1042, 492,200 for SUP-2318, 517,572 for SUP-3155 and 497,951 for SUP-4077.",
     "category": "analyze",
     "verification_type": "file_structure",
@@ -165,7 +165,7 @@
   },
   {
     "item": 17,
-    "weight": 5,
+    "weight": 6,
     "criterion": "supplier_costs.csv reports total_fy2026_cost_usd of 959812.87 for SUP-1042, 962135.40 for SUP-4077, 972920.77 for SUP-2318 and 997031.30 for SUP-3155.",
     "category": "analyze",
     "verification_type": "file_structure",
@@ -175,7 +175,7 @@
   },
   {
     "item": 18,
-    "weight": 4,
+    "weight": 5,
     "criterion": "supplier_costs.csv reports cost_per_good_unit_usd of 1.9749 for SUP-1042, 1.9797 for SUP-4077, 2.0019 for SUP-2318 and 2.0515 for SUP-3155.",
     "category": "analyze",
     "verification_type": "file_structure",
@@ -365,7 +365,7 @@
   },
   {
     "item": 37,
-    "weight": 2,
+    "weight": 1,
     "criterion": "The output directory contains all three required files: supplier_costs.csv, defect_rates.csv and recommendation.md.",
     "category": "instruction_following",
     "verification_type": "file_structure",
@@ -377,7 +377,7 @@
   },
   {
     "item": 38,
-    "weight": 2,
+    "weight": 1,
     "criterion": "The first line of supplier_costs.csv is exactly `supplier_code,supplier_name,quoted_price_usd_per_unit,units_to_purchase,total_fy2026_cost_usd,cost_per_good_unit_usd,rank`.",
     "category": "instruction_following",
     "verification_type": "file_structure",
@@ -387,7 +387,7 @@
   },
   {
     "item": 39,
-    "weight": 2,
+    "weight": 1,
     "criterion": "The first line of defect_rates.csv is exactly `supplier_code,lots_inspected,units_inspected,units_rejected,reject_rate_pct`.",
     "category": "instruction_following",
     "verification_type": "file_structure",
@@ -397,7 +397,7 @@
   },
   {
     "item": 40,
-    "weight": 2,
+    "weight": 1,
     "criterion": "recommendation.md contains the five level-2 headings `## Recommendation`, `## Cost Comparison`, `## Basis of Decision`, `## Data Quality and Exclusions` and `## Risks and Sensitivities`, spelled exactly that way and in that order.",
     "category": "instruction_following",
     "verification_type": "text",
@@ -407,7 +407,7 @@
   },
   {
     "item": 41,
-    "weight": 2,
+    "weight": 1,
     "criterion": "supplier_costs.csv and defect_rates.csv each contain exactly four data rows, supplier_costs.csv ordered by rank ascending and defect_rates.csv by supplier_code ascending.",
     "category": "instruction_following",
     "verification_type": "file_structure",
@@ -418,7 +418,7 @@
   },
   {
     "item": 42,
-    "weight": 2,
+    "weight": 1,
     "criterion": "Numeric fields in supplier_costs.csv and defect_rates.csv contain no currency symbols, thousands separators or percent signs, and every field carries a value rather than being left empty or marked TBD.",
     "category": "instruction_following",
     "verification_type": "file_structure",
@@ -429,7 +429,7 @@
   },
   {
     "item": 43,
-    "weight": 2,
+    "weight": 1,
     "criterion": "supplier_costs.csv reports quoted_price_usd_per_unit and cost_per_good_unit_usd to four decimal places and total_fy2026_cost_usd to two, and defect_rates.csv reports reject_rate_pct to three.",
     "category": "instruction_following",
     "verification_type": "file_structure",
@@ -440,7 +440,7 @@
   },
   {
     "item": 44,
-    "weight": 2,
+    "weight": 1,
     "criterion": "recommendation.md awards the full FY2026 volume to one supplier and does not propose a split award, dual sourcing, a staged award or a deferral.",
     "category": "instruction_following",
     "verification_type": "text",
@@ -450,7 +450,7 @@
   },
   {
     "item": 45,
-    "weight": 2,
+    "weight": 1,
     "criterion": "Every figure that recommendation.md repeats from supplier_costs.csv or defect_rates.csv agrees with the value filed there, and every monetary figure is stated in US dollars.",
     "category": "instruction_following",
     "verification_type": "text",
@@ -462,7 +462,7 @@
   },
   {
     "item": 46,
-    "weight": 3,
+    "weight": 1,
     "criterion": "Every figure in supplier_costs.csv, defect_rates.csv, cost_buildup.csv and recommendation.md is one derived from the files supplied in /workspace/data/, with no outside market price, benchmark or index and no placeholder value.",
     "category": "instruction_following",
     "verification_type": "text",

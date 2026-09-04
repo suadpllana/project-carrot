@@ -267,41 +267,41 @@ omission per row:
 
 | Single omission | Lands on | Contract qty | Contract cost | Tests | Decision |
 | --- | --- | --- | --- | --- | --- |
-| pools the SOURCE inspections (dedupe keeps first record) | SUP-4077 | 497,951 | USD 962,135.40 | 0.246 | 0 / 93 |
-| pools the SOURCE inspections (dedupe keeps last record) | SUP-4077 | 497,951 | USD 962,135.40 | 0.246 | 0 / 93 |
-| pools the SOURCE inspections, no dedupe | SUP-4077 | 497,251 | USD 960,263.08 | 0.190 | 0 / 93 |
-| joins receipts without the ERP number reference | SUP-3155 | 503,199 | USD 952,473.38 | 0.190 | 0 / 93 |
-| attributes lots on the free-text supplier field | SUP-3155 | 503,259 | USD 952,659.39 | 0.190 | 0 / 93 |
-| plans on the October S&OP cycle | SUP-4077 | 551,845 | USD 1,014,420.88 | 0.332 | 0 / 93 |
-| sums both S&OP cycles | SUP-4077 | 1,049,796 | USD 1,924,140.73 | 0.332 | 0 / 93 |
-| counts the TOTAL subtotal rows | SUP-4077 | 995,902 | USD 1,825,679.70 | 0.332 | 0 / 93 |
-| no yield gross-up | SUP-3155 | 486,000 | USD 899,154.55 | 0.374 | 4 / 93 |
-| 2025 average FX instead of planning rates | SUP-3155 | 517,572 | USD 901,047.13 | 0.393 | 0 / 93 |
-| charges no inbound freight | SUP-4077 | 497,951 | USD 927,014.24 | 0.469 | 0 / 93 |
-| re-rates SUP-2318's whole year at 3.0% | SUP-2318 | 492,200 | USD 955,734.37 | 0.507 | 0 / 93 |
-| treats SUP-4077's rebate as earned, no shortfall | SUP-4077 | 497,951 | USD 915,959.85 | 0.412 | 0 / 93 |
-| misses the shortfall charge alone (clause 4.1) | SUP-4077 | 497,951 | USD 952,319.18 | 0.412 | 0 / 93 |
-| ignores payment terms | SUP-4077 | 497,951 | USD 968,859.38 | 0.412 | 0 / 93 |
-| ignores scrap disposal | SUP-4077 | 497,951 | USD 947,196.65 | 0.412 | 0 / 93 |
-| ignores SUP-2318's whole-box rule | SUP-1042 | 495,010 | USD 959,812.87 | 0.834 | 93 / 93 |
-| multiplies by the 4-dp rounded price | SUP-1042 | 495,010 | USD 959,812.87 | 0.815 | 81 / 93 |
-| reference solution | SUP-1042 | 495,010 | USD 959,812.87 | 1.000 | 93 / 93 |
+| pools the SOURCE inspections (dedupe keeps first record) | SUP-4077 | 497,951 | USD 962,135.40 | 0.233 | 0 / 80 |
+| pools the SOURCE inspections (dedupe keeps last record) | SUP-4077 | 497,951 | USD 962,135.40 | 0.233 | 0 / 80 |
+| pools the SOURCE inspections, no dedupe | SUP-4077 | 497,251 | USD 960,263.08 | 0.164 | 0 / 80 |
+| joins receipts without the ERP number reference | SUP-3155 | 503,199 | USD 952,473.38 | 0.164 | 0 / 80 |
+| attributes lots on the free-text supplier field | SUP-3155 | 503,259 | USD 952,659.39 | 0.164 | 0 / 80 |
+| plans on the October S&OP cycle | SUP-4077 | 551,845 | USD 1,014,420.88 | 0.347 | 0 / 80 |
+| sums both S&OP cycles | SUP-4077 | 1,049,796 | USD 1,924,140.73 | 0.347 | 0 / 80 |
+| counts the TOTAL subtotal rows | SUP-4077 | 995,902 | USD 1,825,679.70 | 0.347 | 0 / 80 |
+| no yield gross-up | SUP-3155 | 486,000 | USD 899,154.55 | 0.379 | 3 / 80 |
+| 2025 average FX instead of planning rates | SUP-3155 | 517,572 | USD 901,047.13 | 0.406 | 0 / 80 |
+| charges no inbound freight | SUP-4077 | 497,951 | USD 927,014.24 | 0.516 | 0 / 80 |
+| re-rates SUP-2318's whole year at 3.0% | SUP-2318 | 492,200 | USD 955,734.37 | 0.562 | 0 / 80 |
+| treats SUP-4077's rebate as earned, no shortfall | SUP-4077 | 497,951 | USD 915,959.85 | 0.434 | 0 / 80 |
+| misses the shortfall charge alone (clause 4.1) | SUP-4077 | 497,951 | USD 952,319.18 | 0.434 | 0 / 80 |
+| ignores payment terms | SUP-4077 | 497,951 | USD 968,859.38 | 0.434 | 0 / 80 |
+| ignores scrap disposal | SUP-4077 | 497,951 | USD 947,196.65 | 0.434 | 0 / 80 |
+| ignores SUP-2318's whole-box rule | SUP-1042 | 495,010 | USD 959,812.87 | 0.776 | 80 / 80 |
+| multiplies by the 4-dp rounded price | SUP-1042 | 495,010 | USD 959,812.87 | 0.785 | 71 / 80 |
+| reference solution | SUP-1042 | 495,010 | USD 959,812.87 | 1.000 | 80 / 80 |
 
 And the same measurement for attempt profiles — a competent attempt that does
 every documented step and misses one or two judgements:
 
 | Attempt profile | Lands on | Contract qty | Contract cost | Tests | Decision |
 | --- | --- | --- | --- | --- | --- |
-| pools SOURCE records (the default if the log is read as one population) | SUP-4077 | 497,951 | USD 962,135.40 | 0.246 | 0 / 93 |
-| pools SOURCE, joins receipts on po_id as it stands | SUP-3155 | 503,199 | USD 952,473.38 | 0.209 | 4 / 93 |
-| pools SOURCE, attributes on the free-text supplier field | SUP-4077 | 496,933 | USD 959,412.51 | 0.190 | 0 / 93 |
-| joins receipts on po_id as it stands, sums both plan cycles | SUP-4077 | 1,050,431 | USD 1,926,075.53 | 0.166 | 0 / 93 |
-| free-text attribution, October plan cycle | SUP-4077 | 550,716 | USD 1,010,980.90 | 0.166 | 0 / 93 |
-| every judgement right, whole-box rule and rounded price missed | SUP-1042 | 495,010 | USD 959,812.87 | 0.739 | 81 / 93 |
-| every judgement right, payment terms and scrap missed | SUP-4077 | 497,951 | USD 953,920.63 | 0.412 | 0 / 93 |
+| pools SOURCE records (the default if the log is read as one population) | SUP-4077 | 497,951 | USD 962,135.40 | 0.233 | 0 / 80 |
+| pools SOURCE, joins receipts on po_id as it stands | SUP-3155 | 503,199 | USD 952,473.38 | 0.178 | 3 / 80 |
+| pools SOURCE, attributes on the free-text supplier field | SUP-4077 | 496,933 | USD 959,412.51 | 0.164 | 0 / 80 |
+| joins receipts on po_id as it stands, sums both plan cycles | SUP-4077 | 1,050,431 | USD 1,926,075.53 | 0.146 | 0 / 80 |
+| free-text attribution, October plan cycle | SUP-4077 | 550,716 | USD 1,010,980.90 | 0.146 | 0 / 80 |
+| every judgement right, whole-box rule and rounded price missed | SUP-1042 | 495,010 | USD 959,812.87 | 0.689 | 71 / 80 |
+| every judgement right, payment terms and scrap missed | SUP-4077 | 497,951 | USD 953,920.63 | 0.434 | 0 / 80 |
 
 Twenty-two of the twenty-five omissions land on a different supplier, at
-0.15 to 0.48 test-side with 0 of 93 test-side decision points; the three that
+0.14 to 0.50 test-side with 0 of 93 test-side decision points; the three that
 do not are SUP-2318's whole-box rule and the rounded price, which change no
 figure of the winner's, and the reference itself.
 
@@ -324,19 +324,32 @@ material, freight and rebates and stops now fails the build-up file as well as
 every total.
 
 An attempt has to clear all four judgements *and* carry every line of the cost
-build-up to score above 0.48.
+build-up to score above 0.50.
 
-Free credit is small and bounded: the structural checks carry 18 of 211
-test-side points and the instruction-following rubric criteria 21 of 198,
-together 10% of the 409 total. Four sentinel checks worth 34 points name the
+**The decision sits at the bottom of the permitted band, not the top.** The
+usual advice is to widen decision share so a wrong conclusion costs more, and
+earlier revisions of this task did that. Five sweeps say this weak model
+reaches the right supplier, so decision weight is its floor rather than its
+risk: every point of it is banked before a figure is checked. Decision is
+therefore 31.6% of positive weight — inside the 30-50% band, at the end of it
+that suits the evidence — and the weight taken off it sits on figures that
+have to be exactly right: the four reject rates, the four purchase quantities,
+the four totals, the four sentinels and the twelve elements of the cost
+build-up.
+
+What a well-formed but analytically wrong answer can still bank is 7% of the
+402 total: file existence, headers, sort order, the two self-consistency
+checks and the instruction-following rubric criteria, each capped at one
+point. An attempt that gets the decision right and the figures wrong scores
+0.39 before it earns anything for the analysis, against 0.47 a revision ago. Four sentinel checks worth 34 points name the
 population corrections and are earned only by an attempt that made them. The
-decision carries 36.9% of total positive weight (151 of 409), inside the
+decision carries 31.6% of total positive weight (127 of 402), inside the
 30-50% band, and none of it is reachable by naming a supplier alone: two of the
 three decision figures are the contracted quantity and the contract-year cost
 to the cent.
 
 The floor is protected: three test penalties and two rubric penalties total
-−26 against 409 positive weight, and none fires on a merely incomplete answer.
+−26 against 402 positive weight, and none fires on a merely incomplete answer.
 
 Two checks earn nothing for naming a supplier or a file: `## Basis of Decision`
 has to put one of a losing supplier's own figures, or one of the things that
