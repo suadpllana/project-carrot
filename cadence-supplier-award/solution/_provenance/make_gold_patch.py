@@ -18,7 +18,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-FILES = ["supplier_costs.csv", "defect_rates.csv", "recommendation.md"]
+FILES = ["supplier_costs.csv", "defect_rates.csv", "cost_buildup.csv",
+         "recommendation.md"]
 
 HEADER = """\
 Gold patch for cadence-supplier-award.

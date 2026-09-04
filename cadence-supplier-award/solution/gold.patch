@@ -24,6 +24,36 @@ new file mode 100644
 +SUP-2318,58,176000,2200,1.250
 +SUP-3155,63,190000,11590,6.100
 +SUP-4077,61,182000,4368,2.400
+diff --git a/output/cost_buildup.csv b/output/cost_buildup.csv
+new file mode 100644
+--- /dev/null
++++ b/output/cost_buildup.csv
+@@ -0,0 +1,25 @@
++supplier_code,cost_element,amount_usd
++SUP-1042,inbound_freight,0.00
++SUP-1042,material,962794.45
++SUP-1042,payment_terms,-14244.08
++SUP-1042,scrap_disposal,11262.50
++SUP-1042,shortfall_charge,0.00
++SUP-1042,volume_rebate,0.00
++SUP-2318,inbound_freight,36276.40
++SUP-2318,material,939905.12
++SUP-2318,payment_terms,0.00
++SUP-2318,scrap_disposal,7750.00
++SUP-2318,shortfall_charge,0.00
++SUP-2318,volume_rebate,-11010.75
++SUP-3155,inbound_freight,0.00
++SUP-3155,material,964702.45
++SUP-3155,payment_terms,-7136.16
++SUP-3155,scrap_disposal,39465.00
++SUP-3155,shortfall_charge,0.00
++SUP-3155,volume_rebate,0.00
++SUP-4077,inbound_freight,35121.16
++SUP-4077,material,908983.26
++SUP-4077,payment_terms,-6723.99
++SUP-4077,scrap_disposal,14938.75
++SUP-4077,shortfall_charge,9816.21
++SUP-4077,volume_rebate,0.00
 diff --git a/output/recommendation.md b/output/recommendation.md
 new file mode 100644
 --- /dev/null
