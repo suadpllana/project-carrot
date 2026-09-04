@@ -139,6 +139,31 @@ EXCLUSION_TOPICS = {
     "the daily FX export": r"daily|planning rate|fx_daily|exchange rate",
 }
 MIN_EXCLUSION_TOPICS = 3
+MIN_SECTION_WORDS = 30          # instruction.md sets this floor per section
+
+# Awarding language. instruction.md asks `## Recommendation` for exactly one
+# awarded supplier, so a statement that awards a different one is a second
+# award however the memo words it.
+AWARD_WORDS = r"award|recommend|select|choose|consolidat|go with|place the (?:volume|contract)"
+
+# Conditional language. instruction.md asks `## Risks and Sensitivities` to say
+# what would have to change to overturn the recommendation, as a quantity, so
+# the section needs a figure inside a condition rather than a figure anywhere.
+CONDITION_WORDS = (r"\bif\b|\bonce\b|\bwere\b|\bwould\b|above|below|beyond|"
+                   r"exceed|reach|rise|fall|drift|past|over |under |up to|"
+                   r"break-?even|breakeven|threshold|unless|overturn|reverse|flip")
+
+# Reason language, for `## Data Quality and Exclusions`: the prompt asks what
+# was excluded AND why, so a bare list of populations does not answer it.
+REASON_WORDS = (r"because|since|therefore|so that|so it|so they|as they|as it|"
+                r"rather than|instead|not a candidate|out of scope|superseded|"
+                r"replaced|never|do(?:es)? not|is not|are not|would|which is|"
+                r"reason|due to|leaving|counted|set aside|excluded|dropped")
+
+# The build-up instruction.md requires in `## Cost Comparison`: every element
+# charged, labelled, as a US-dollar amount. These two are the elements a
+# hurried cost model leaves out entirely, and they decide the award.
+GOLD_BUILDUP = {"scrap disposal": 11262.50, "payment terms": -14244.08}
 
 # What separates the four offers. A statement that names a supplier that lost
 # and reaches for one of these is giving a reason, whatever words it uses; a
@@ -454,8 +479,11 @@ def test_memo_has_required_sections_in_order():
     idx = [found.index(s) for s in REQUIRED_SECTIONS]
     assert idx == sorted(idx), "required headings are out of order: %s" % found
 
-    empty = [s for s in REQUIRED_SECTIONS if not section(s).strip()]
-    assert not empty, "headings with nothing under them: %s" % empty
+    thin = [(s, len(section(s).split())) for s in REQUIRED_SECTIONS
+            if len(section(s).split()) < MIN_SECTION_WORDS]
+    assert not thin, (
+        "instruction.md sets a floor of %d words per section; short: %s"
+        % (MIN_SECTION_WORDS, ", ".join("%s (%d)" % t for t in thin)))
 
     # the two sections whose substance nothing else here grades: why the
     # suppliers that were not picked lose, and what would overturn the award
@@ -485,9 +513,12 @@ def test_memo_has_required_sections_in_order():
     assert mentions(risks, AWARD), (
         "## Risks and Sensitivities does not tie the risks to the awarded "
         "supplier")
-    assert numbers_in(risks), (
-        "## Risks and Sensitivities quantifies nothing; it has to say what "
-        "would have to change to overturn the recommendation")
+    quantified = [u for u in statements(risks)
+                  if numbers_in(u) and re.search(CONDITION_WORDS, u, re.IGNORECASE)]
+    assert quantified, (
+        "## Risks and Sensitivities states no quantity inside a condition; the "
+        "prompt asks what would have to change to overturn the recommendation, "
+        "stated as a quantity")
 
 
 # ---------------------------------------------------------------------------
@@ -550,6 +581,15 @@ def test_recommendation_names_correct_supplier():
     assert name_key(GOLD_NAME[AWARD]) in name_key(body), (
         "## Recommendation does not name the awarded supplier's legal name in "
         "full, %r" % GOLD_NAME[AWARD])
+    # exactly one: no statement may award a supplier other than the awardee
+    also_awarded = sorted({
+        c for c in CANDIDATES if c != AWARD
+        for unit in statements(body)
+        if mentions(unit, c) and not mentions(unit, AWARD)
+        and re.search(AWARD_WORDS, unit, re.IGNORECASE)})
+    assert not also_awarded, (
+        "## Recommendation puts %s forward for the award as well; the prompt "
+        "asks for exactly one awarded supplier" % ", ".join(also_awarded))
 
 
 def test_recommendation_states_quantity_total_and_margin():
@@ -806,9 +846,31 @@ def test_memo_cost_comparison_covers_all_four():
         # total the costs-file checks have already scored
         total = (as_float(row[4], GOLD_TOTAL[code])
                  if len(row) == len(COSTS_HEADER) else GOLD_TOTAL[code])
-        assert any(mentions(u, code) and states_money(u, total) for u in units), (
+        assert any(mentions(u, code) and states_dollars(u, total) for u in units), (
             "## Cost Comparison never ties %s to its own FY2026 total cost of "
-            "USD %.2f in one row or sentence" % (code, total))
+            "USD %.2f, marked as a US-dollar amount, in one row or sentence"
+            % (code, total))
+
+
+def test_memo_buildup_shows_every_element_charged():
+    """instruction.md asks `## Cost Comparison` for the build-up of each
+    supplier's FY2026 total: every element charged, labelled, as a US-dollar
+    amount. Scrap disposal and the working-capital value of payment terms are
+    the two a hurried cost model leaves out altogether, and either one decides
+    the award, so the awarded supplier's build-up has to carry both."""
+    body = section("Cost Comparison")
+    assert body.strip(), "## Cost Comparison section missing or empty"
+    units = [u for u in statements(body) if mentions(u, AWARD)]
+    assert units, "## Cost Comparison does not cover %s" % AWARD
+    missing = []
+    for label, value in sorted(GOLD_BUILDUP.items()):
+        if not any(any(abs(v - value) <= MONEY_SLACK + 1e-9
+                       or abs(v + value) <= MONEY_SLACK + 1e-9
+                       for v in dollar_figures(u)) for u in units):
+            missing.append("%s (USD %.2f)" % (label, value))
+    assert not missing, (
+        "the %s build-up in ## Cost Comparison does not carry %s as a "
+        "US-dollar amount" % (AWARD, "; ".join(missing)))
 
 
 def test_memo_flags_non_candidate_supplier():
@@ -819,12 +881,18 @@ def test_memo_flags_non_candidate_supplier():
     assert (NON_CANDIDATE in body or "old harbor" in body.casefold()), (
         "## Data Quality and Exclusions does not identify %s, the supplier that "
         "appears in the source data but is not a candidate" % NON_CANDIDATE)
-    reported = [name for name, pattern in EXCLUSION_TOPICS.items()
-                if re.search(pattern, body, re.IGNORECASE)]
+    # each population has to be reported WITH a reason, per instruction.md
+    reported = []
+    for name, pattern in EXCLUSION_TOPICS.items():
+        for unit in statements(body):
+            if re.search(pattern, unit, re.IGNORECASE) and re.search(
+                    REASON_WORDS, unit, re.IGNORECASE):
+                reported.append(name)
+                break
     assert len(reported) >= MIN_EXCLUSION_TOPICS, (
-        "## Data Quality and Exclusions names %s but reports %d of the "
-        "populations set aside (%s); the section has to say what was excluded "
-        "from the source data and why"
+        "## Data Quality and Exclusions names %s but gives a reason for only "
+        "%d of the populations it set aside (%s); the prompt asks what was "
+        "excluded from the source data and why"
         % (NON_CANDIDATE, len(reported), ", ".join(reported) or "none"))
 
 

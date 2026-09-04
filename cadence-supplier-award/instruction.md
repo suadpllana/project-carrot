@@ -87,27 +87,34 @@ spelled exactly this way and in this order:
 ## Risks and Sensitivities
 ```
 
-- `## Recommendation` names **exactly one** awarded supplier, by both its
-  supplier code and its full legal name, and states the FY2026 purchase
-  quantity you would contract with it, that supplier's FY2026 total cost in
-  US dollars, and the US-dollar amount by which it beats the second-ranked
-  supplier over FY2026.
-- `## Cost Comparison` shows all four suppliers with the figures behind the
-  ranking, including each supplier's FY2026 total cost, and states the FY2026
-  good-unit requirement you worked to.
-- `## Basis of Decision` explains what drives the ranking and, naming each of
-  them, why the three suppliers you did not pick lose.
-- `## Data Quality and Exclusions` states what you excluded from the source
-  data and why, and identifies every supplier that appears in the source data
-  but is not a candidate for this award.
-- `## Risks and Sensitivities` gives the risks attached to the supplier you
-  picked and quantifies what would have to change to overturn the
-  recommendation.
+Each section must contain **at least 30 words**, and must cover the following.
 
-Each of the five sections has to carry that content: a heading with nothing
-under it, or a line of filler, is not a section. Figures repeated in the memo
-are the figures you filed — quote them as they stand in the two CSVs, to the
-cent or rounded to the nearest whole dollar, never at some other value.
+- `## Recommendation` — **exactly one** awarded supplier, by both its supplier
+  code and its full legal name; the FY2026 purchase quantity you would
+  contract with it; that supplier's FY2026 total cost in US dollars; and the
+  US-dollar amount by which it beats the second-ranked supplier over FY2026.
+- `## Cost Comparison` — all four suppliers, each with its FY2026 total cost;
+  the FY2026 good-unit requirement you worked to and where in the demand data
+  you took it from; how each supplier's purchase quantity follows from that
+  requirement; and the **build-up of each supplier's FY2026 total cost** —
+  every cost element you charged that supplier, labelled, as a US-dollar
+  amount, and adding up to the total you filed for it.
+- `## Basis of Decision` — what drives the ranking; why each of the three
+  suppliers you did not pick loses, naming each of them; and the basis on
+  which you restated each supplier's quoted price to US dollars per piece.
+- `## Data Quality and Exclusions` — the basis on which you computed each
+  supplier's reject rate, which inspection records you counted and which you
+  set aside, with the reason in each case; anything else you excluded from the
+  source data and why; and every supplier that appears in the source data but
+  is not a candidate for this award.
+- `## Risks and Sensitivities` — the risks attached to the supplier you
+  picked, and what would have to change to overturn the recommendation, stated
+  as a quantity.
+
+Figures repeated in the memo are the figures you filed — quote them as they
+stand in the two CSVs, to the cent or rounded to the nearest whole dollar,
+never at some other value. Every monetary figure in the memo is stated in US
+dollars and marked as such.
 
 ## Constraints
 

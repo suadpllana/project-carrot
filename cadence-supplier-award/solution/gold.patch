@@ -47,21 +47,21 @@ new file mode 100644
 +
 +| supplier_code | supplier_name | quoted USD/piece | units to purchase | FY2026 total USD | USD per good unit | rank |
 +| --- | --- | --- | --- | --- | --- | --- |
-+| SUP-1042 | Meridian Precision Works, LLC | 1.9450 | 495,010 | 959812.87 | 1.9749 | 1 |
-+| SUP-4077 | Brackenridge Tooling Ltd | 1.8254 | 497,951 | 962135.40 | 1.9797 | 2 |
-+| SUP-2318 | Rheinwerk Feinmechanik GmbH | 1.9096 | 492,200 | 972920.77 | 2.0019 | 3 |
-+| SUP-3155 | Talleres Nortenos, S.A. de C.V. | 1.8639 | 517,572 | 997031.30 | 2.0515 | 4 |
++| SUP-1042 | Meridian Precision Works, LLC | USD 1.9450 | 495,010 | USD 959812.87 | USD 1.9749 | 1 |
++| SUP-4077 | Brackenridge Tooling Ltd | USD 1.8254 | 497,951 | USD 962135.40 | USD 1.9797 | 2 |
++| SUP-2318 | Rheinwerk Feinmechanik GmbH | USD 1.9096 | 492,200 | USD 972920.77 | USD 2.0019 | 3 |
++| SUP-3155 | Talleres Nortenos, S.A. de C.V. | USD 1.8639 | 517,572 | USD 997031.30 | USD 2.0515 | 4 |
 +
-+Cost build-up, in US dollars:
++Build-up of each supplier's FY2026 total cost. Every element charged is shown; the elements add up to the total filed in supplier_costs.csv.
 +
 +| supplier_code | material | inbound freight | volume rebate | shortfall charge | scrap disposal | payment terms | total |
 +| --- | --- | --- | --- | --- | --- | --- | --- |
-+| SUP-1042 | 962794.45 | 0.00 | 0.00 | 0.00 | 11262.50 | -14244.08 | 959812.87 |
-+| SUP-4077 | 908983.26 | 35121.16 | 0.00 | 9816.21 | 14938.75 | -6723.99 | 962135.40 |
-+| SUP-2318 | 939905.12 | 36276.40 | -11010.75 | 0.00 | 7750.00 | 0.00 | 972920.77 |
-+| SUP-3155 | 964702.45 | 0.00 | 0.00 | 0.00 | 39465.00 | -7136.16 | 997031.30 |
++| SUP-1042 | USD 962794.45 | USD 0.00 | USD 0.00 | USD 0.00 | USD 11262.50 | USD -14244.08 | USD 959812.87 |
++| SUP-4077 | USD 908983.26 | USD 35121.16 | USD 0.00 | USD 9816.21 | USD 14938.75 | USD -6723.99 | USD 962135.40 |
++| SUP-2318 | USD 939905.12 | USD 36276.40 | USD -11010.75 | USD 0.00 | USD 7750.00 | USD 0.00 | USD 972920.77 |
++| SUP-3155 | USD 964702.45 | USD 0.00 | USD 0.00 | USD 0.00 | USD 39465.00 | USD -7136.16 | USD 997031.30 |
 +
-+SUP-2318 is bought in whole 100-piece boxes (clause 1: partial boxes are not tendered), so its purchase quantity is the grossed-up requirement rounded up to the next box.
++Each purchase quantity follows from that requirement: pieces rejected at incoming inspection are scrapped by Cadence with no credit and no replacement (clause 5.4 of every term sheet), so the buy has to carry the loss and is the requirement grossed up for that supplier's own incoming reject rate, rounded up to the next whole piece — SUP-1042 495,010, SUP-2318 492,200, SUP-3155 517,572, SUP-4077 497,951. SUP-2318 is bought in whole 100-piece boxes (clause 1: partial boxes are not tendered), so its quantity is rounded up to the next box, 492,200 pieces.
 +
 +## Basis of Decision
 +

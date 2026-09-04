@@ -382,7 +382,7 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
 
     def line(code):
         r = rows[code]
-        return ("| {} | {} | {:.4f} | {:,} | {:.2f} | {:.4f} | {} |".format(
+        return ("| {} | {} | USD {:.4f} | {:,} | USD {:.2f} | USD {:.4f} | {} |".format(
             code, names[code], r["unit_price"], r["units"], r["total"],
             r["per_good"], r["rank"]))
 
@@ -418,20 +418,30 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
     for code in order:
         md.append(line(code))
     md.append("")
-    md.append("Cost build-up, in US dollars:\n")
+    md.append("Build-up of each supplier's FY2026 total cost. Every element "
+              "charged is shown; the elements add up to the total filed in "
+              "supplier_costs.csv.\n")
     md.append("| supplier_code | material | inbound freight | volume rebate | "
               "shortfall charge | scrap disposal | payment terms | total |")
     md.append("| --- | --- | --- | --- | --- | --- | --- | --- |")
     for code in order:
         r = rows[code]
-        md.append("| {} | {} | {} | {} | {} | {} | {} | {} |".format(
+        md.append("| {} | USD {} | USD {} | USD {} | USD {} | USD {} | USD {} | USD {} |".format(
             code, money(r["material"]), money(r["freight"]),
             money(-r["rebate"]), money(r["shortfall"]), money(r["scrap"]),
             money(r["terms"]), money(r["total"])))
     md.append("")
-    md.append("SUP-2318 is bought in whole 100-piece boxes (clause 1: partial "
-              "boxes are not tendered), so its purchase quantity is the "
-              "grossed-up requirement rounded up to the next box.\n")
+    md.append("Each purchase quantity follows from that requirement: pieces "
+              "rejected at incoming inspection are scrapped by Cadence with no "
+              "credit and no replacement (clause 5.4 of every term sheet), so "
+              "the buy has to carry the loss and is the requirement grossed up "
+              "for that supplier's own incoming reject rate, rounded up to the "
+              "next whole piece — {}. SUP-2318 is bought in whole 100-piece "
+              "boxes (clause 1: partial boxes are not tendered), so its "
+              "quantity is rounded up to the next box, {:,} pieces.\n".format(
+                  ", ".join("{} {:,}".format(c, rows[c]["units"])
+                            for c in sorted(CANDIDATES)),
+                  rows["SUP-2318"]["units"]))
 
     md.append("## Basis of Decision\n")
     md.append("Four things separate these offers, and none of them is the "

@@ -5,7 +5,10 @@
 **Date:** 2025-11-24
 
 The attached extract (`forecast_2026.csv`) is the S&OP-approved FY2026 build
-plan as frozen at the November cycle. A few notes for whoever picks this up:
+plan. **The plan of record for FY2026 is the November 2025 planning cycle**,
+signed off at the November S&OP meeting and frozen there; any earlier cycle is
+superseded and is not to be planned against. A few notes for whoever picks
+this up:
 
 - The extract is a **direct dump from the planning cube**, so it carries the
   cube's own subtotal rows as well as the monthly detail. It has not been

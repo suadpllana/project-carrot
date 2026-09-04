@@ -114,6 +114,24 @@ each route against the shipped verifier.
     5): USD 11,262.50 for SUP-1042 against USD 14,938.75 for SUP-4077. Leaving
     it out hands SUP-4077 the award.
 
+## What the memo has to disclose
+
+`instruction.md` asks each memo section for the basis behind its figures, not
+just the figures: the build-up of every supplier's FY2026 total (every element
+charged, labelled, in US dollars, adding to the filed total); which inspection
+records were counted and which set aside, with the reason; where the good-unit
+requirement came from and how each purchase quantity follows from it; and the
+basis on which quoted prices were restated. That is a duty to disclose method,
+never a list of the method's steps — nothing tells the attempt which records to
+set aside, which purchase-order numbers need resolving, or which plan cycle is
+the plan of record beyond the handover note's designation.
+
+It exists for two reasons. It makes the rubric gradable from the deliverable:
+every criterion scores a disclosure the prompt asks for by name, which is what
+the audit failed the previous revision for. And it exposes the whole cost model
+to checking, so an attempt that never computes scrap or the working-capital
+value of payment terms cannot hide that behind a fluent memo.
+
 ## Regenerating
 
     python solution/_provenance/generate_data.py      # needs openpyxl
