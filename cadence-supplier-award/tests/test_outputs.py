@@ -29,7 +29,8 @@ import os
 import re
 from pathlib import Path
 
-GRADED = ["supplier_costs.csv", "defect_rates.csv", "recommendation.md"]
+GRADED = ["supplier_costs.csv", "defect_rates.csv", "cost_buildup.csv",
+          "recommendation.md"]
 
 # The runner's output directory, resolved ABSOLUTELY. Never relative to this
 # file: the tests directory is mounted somewhere the attempt never writes, so
@@ -61,7 +62,8 @@ OUTPUT_DIR = _resolve_output_dir()
 
 COSTS = OUTPUT_DIR / GRADED[0]
 DEFECTS = OUTPUT_DIR / GRADED[1]
-MEMO = OUTPUT_DIR / GRADED[2]
+BUILDUP = OUTPUT_DIR / GRADED[2]
+MEMO = OUTPUT_DIR / GRADED[3]
 
 CANDIDATES = ["SUP-1042", "SUP-2318", "SUP-3155", "SUP-4077"]
 AWARD = "SUP-1042"
@@ -75,6 +77,8 @@ COSTS_HEADER = ["supplier_code", "supplier_name", "quoted_price_usd_per_unit",
                 "cost_per_good_unit_usd", "rank"]
 DEFECTS_HEADER = ["supplier_code", "lots_inspected", "units_inspected",
                   "units_rejected", "reject_rate_pct"]
+BUILDUP_HEADER = ["supplier_code", "cost_element", "amount_usd"]
+ELEMENT_OK = re.compile(r"^[a-z0-9_]{1,32}$")
 
 REQUIRED_SECTIONS = ["## Recommendation", "## Cost Comparison",
                      "## Basis of Decision", "## Data Quality and Exclusions",
@@ -153,6 +157,13 @@ CONDITION_WORDS = (r"\bif\b|\bonce\b|\bwere\b|\bwould\b|above|below|beyond|"
                    r"exceed|reach|rise|fall|drift|past|over |under |up to|"
                    r"break-?even|breakeven|threshold|unless|overturn|reverse|flip")
 
+# Where the requirement came from, for `## Cost Comparison`: instruction.md
+# asks for the demand data it was taken from, and the demand extract is a
+# planning-cube dump of monthly rows by part and S&OP cycle.
+DEMAND_SOURCE_WORDS = (r"cycle|s&op|sop\b|november|monthly|month|plan\b|"
+                       r"planning|forecast|cube|extract|sp-40|frozen|"
+                       r"forecast_2026|demand file|demand data")
+
 # Reason language, for `## Data Quality and Exclusions`: the prompt asks what
 # was excluded AND why, so a bare list of populations does not answer it.
 REASON_WORDS = (r"because|since|therefore|so that|so it|so they|as they|as it|"
@@ -163,7 +174,18 @@ REASON_WORDS = (r"because|since|therefore|so that|so it|so they|as they|as it|"
 # The build-up instruction.md requires in `## Cost Comparison`: every element
 # charged, labelled, as a US-dollar amount. These two are the elements a
 # hurried cost model leaves out entirely, and they decide the award.
-GOLD_BUILDUP = {"scrap disposal": 11262.50, "payment terms": -14244.08}
+# Sections 3 and 5 of the shipped finance policy put a working-capital value
+# on payment terms and a disposal cost on every rejected piece, so any correct
+# build-up charges both. The labels are the attempt's own, so these are matched
+# as amounts: an attempt that never modelled them has no row carrying the
+# figure. Zero-valued elements are not required.
+GOLD_BUILDUP = {
+    "SUP-1042": {"scrap disposal": 11262.50, "payment terms": -14244.08},
+    "SUP-2318": {"scrap disposal": 7750.00},
+    "SUP-3155": {"scrap disposal": 39465.00, "payment terms": -7136.16},
+    "SUP-4077": {"scrap disposal": 14938.75, "payment terms": -6723.99,
+                 "shortfall charge": 9816.21},
+}
 
 # What separates the four offers. A statement that names a supplier that lost
 # and reaches for one of these is giving a reason, whatever words it uses; a
@@ -211,6 +233,25 @@ def costs_rows():
 
 def defects_rows():
     return read_rows(DEFECTS, DEFECTS_HEADER)
+
+
+def buildup_rows():
+    """cost_buildup.csv as (supplier_code, element, amount) triples."""
+    if not BUILDUP.is_file():
+        return []
+    text = BUILDUP.read_text(encoding="utf-8", errors="replace")
+    rows = [r for r in csv.reader(io.StringIO(text)) if any(c.strip() for c in r)]
+    if not rows:
+        return []
+    body = rows[1:] if [c.strip() for c in rows[0]] == BUILDUP_HEADER else rows
+    return [tuple(c.strip() for c in r) for r in body if len(r) == 3]
+
+
+def buildup_by_supplier():
+    out = {}
+    for code, element, amount in buildup_rows():
+        out.setdefault(code, []).append((element, as_float(amount)))
+    return out
 
 
 def memo_text():
@@ -513,12 +554,9 @@ def test_memo_has_required_sections_in_order():
     assert mentions(risks, AWARD), (
         "## Risks and Sensitivities does not tie the risks to the awarded "
         "supplier")
-    quantified = [u for u in statements(risks)
-                  if numbers_in(u) and re.search(CONDITION_WORDS, u, re.IGNORECASE)]
-    assert quantified, (
-        "## Risks and Sensitivities states no quantity inside a condition; the "
-        "prompt asks what would have to change to overturn the recommendation, "
-        "stated as a quantity")
+    # what would overturn the award is graded by the rubric against the figure
+    # it has to be: this check keeps to what it can settle from the file, that
+    # the section is about the supplier being awarded.
 
 
 # ---------------------------------------------------------------------------
@@ -581,6 +619,12 @@ def test_recommendation_names_correct_supplier():
     assert name_key(GOLD_NAME[AWARD]) in name_key(body), (
         "## Recommendation does not name the awarded supplier's legal name in "
         "full, %r" % GOLD_NAME[AWARD])
+    # the section has to put this supplier forward, not merely name it
+    put_forward = [u for u in statements(body)
+                   if mentions(u, AWARD) and re.search(AWARD_WORDS, u, re.IGNORECASE)]
+    assert put_forward, (
+        "## Recommendation names %s but never puts it forward for the award; "
+        "the prompt asks the section to name the awarded supplier" % AWARD)
     # exactly one: no statement may award a supplier other than the awardee
     also_awarded = sorted({
         c for c in CANDIDATES if c != AWARD
@@ -823,12 +867,17 @@ def test_sup2318_bought_in_whole_boxes():
 def test_memo_states_good_unit_requirement():
     body = section("Cost Comparison")
     assert body.strip(), "## Cost Comparison section missing or empty"
-    tied = [s for s in statements(body) if states_count(s, GOOD_UNITS)
+    tied = [u for u in statements(body) if states_count(u, GOOD_UNITS)
             and re.search(r"good[\s-]*units?|requirement|required|demand",
-                          s, re.IGNORECASE)]
+                          u, re.IGNORECASE)]
     assert tied, (
         "## Cost Comparison does not state %d as the FY2026 good-unit "
         "requirement worked to" % GOOD_UNITS)
+    # instruction.md also asks where in the demand data it was taken from
+    sourced = [u for u in tied if re.search(DEMAND_SOURCE_WORDS, u, re.IGNORECASE)]
+    assert sourced, (
+        "## Cost Comparison states the %d-piece requirement but not where in "
+        "the demand data it was taken from" % GOOD_UNITS)
 
 
 def test_memo_cost_comparison_covers_all_four():
@@ -852,25 +901,76 @@ def test_memo_cost_comparison_covers_all_four():
             % (code, total))
 
 
-def test_memo_buildup_shows_every_element_charged():
-    """instruction.md asks `## Cost Comparison` for the build-up of each
-    supplier's FY2026 total: every element charged, labelled, as a US-dollar
-    amount. Scrap disposal and the working-capital value of payment terms are
-    the two a hurried cost model leaves out altogether, and either one decides
-    the award, so the awarded supplier's build-up has to carry both."""
-    body = section("Cost Comparison")
-    assert body.strip(), "## Cost Comparison section missing or empty"
-    units = [u for u in statements(body) if mentions(u, AWARD)]
-    assert units, "## Cost Comparison does not cover %s" % AWARD
+def test_cost_buildup_file_exists():
+    assert BUILDUP.is_file(), "missing /workspace/output/cost_buildup.csv"
+
+
+def test_cost_buildup_header_and_shape():
+    assert BUILDUP.is_file(), "cost_buildup.csv not produced"
+    first = next(csv.reader(io.StringIO(
+        BUILDUP.read_text(encoding="utf-8", errors="replace"))), [])
+    assert [c.strip() for c in first] == BUILDUP_HEADER, (
+        "header is %r, expected %r" % (first, BUILDUP_HEADER))
+    rows = buildup_rows()
+    assert rows, "no parsable rows in cost_buildup.csv"
+    by = buildup_by_supplier()
+    missing = [c for c in CANDIDATES if c not in by]
+    assert not missing, "cost_buildup.csv carries no rows for %s" % ", ".join(missing)
+    stray = sorted(set(by) - set(CANDIDATES))
+    assert not stray, "cost_buildup.csv carries rows for %s" % ", ".join(stray)
+    for code, element, amount in rows:
+        assert ELEMENT_OK.match(element), (
+            "%s cost_element %r is not a short lower-case label" % (code, element))
+        assert NUMERIC_OK.match(amount), (
+            "%s %s amount_usd is %r" % (code, element, amount))
+        assert decimals(amount) == 2, (
+            "%s %s amount_usd needs 2 dp" % (code, element))
+    for code, items in by.items():
+        labels = [e for e, _ in items]
+        assert len(labels) == len(set(labels)), (
+            "%s repeats a cost_element; each element charged gets one row" % code)
+    ordered = [(c, e) for c, e, _ in rows]
+    assert ordered == sorted(ordered), (
+        "rows must be sorted by supplier_code then cost_element")
+
+
+def test_cost_buildup_sums_to_the_filed_total():
+    """instruction.md binds the decomposition only by its sum."""
+    costs, _ = costs_rows()
+    by = buildup_by_supplier()
+    assert by, "no parsable rows in cost_buildup.csv"
+    for code in CANDIDATES:
+        items = by.get(code)
+        assert items, "cost_buildup.csv carries no rows for %s" % code
+        assert all(a is not None for _, a in items), (
+            "%s has a non-numeric amount_usd" % code)
+        filed = as_float(costs.get(code, [""] * 7)[4]) if code in costs else None
+        assert filed is not None, (
+            "supplier_costs.csv has no numeric total for %s to reconcile against" % code)
+        total = sum(a for _, a in items)
+        slack = 0.005 * len(items) + 1e-9
+        assert abs(total - filed) <= slack, (
+            "%s build-up sums to %.2f against a filed total of %.2f"
+            % (code, total, filed))
+
+
+def test_cost_buildup_charges_the_policy_elements():
+    """The shipped finance policy puts a working-capital value on payment terms
+    (section 3) and a disposal cost on every rejected piece (section 5), and the
+    volume commitment in SUP-4077's offer charges a shortfall. Any correct
+    build-up carries those amounts; the labels are the attempt's own, so only
+    the amounts are matched."""
+    by = buildup_by_supplier()
+    assert by, "no parsable rows in cost_buildup.csv"
     missing = []
-    for label, value in sorted(GOLD_BUILDUP.items()):
-        if not any(any(abs(v - value) <= MONEY_SLACK + 1e-9
-                       or abs(v + value) <= MONEY_SLACK + 1e-9
-                       for v in dollar_figures(u)) for u in units):
-            missing.append("%s (USD %.2f)" % (label, value))
+    for code, wanted in sorted(GOLD_BUILDUP.items()):
+        amounts = [a for _, a in by.get(code, []) if a is not None]
+        for label, value in sorted(wanted.items()):
+            if not any(abs(a - value) <= 0.005 + 1e-9 for a in amounts):
+                missing.append("%s %s (USD %.2f)" % (code, label, value))
     assert not missing, (
-        "the %s build-up in ## Cost Comparison does not carry %s as a "
-        "US-dollar amount" % (AWARD, "; ".join(missing)))
+        "cost_buildup.csv charges no element of that amount for: %s"
+        % "; ".join(missing))
 
 
 def test_memo_flags_non_candidate_supplier():
@@ -889,10 +989,16 @@ def test_memo_flags_non_candidate_supplier():
                     REASON_WORDS, unit, re.IGNORECASE):
                 reported.append(name)
                 break
+    # instruction.md names one of these explicitly: which inspection records
+    # were counted towards the reject rates and which were set aside, and why
+    assert "source inspections" in reported, (
+        "## Data Quality and Exclusions does not say, with a reason, which "
+        "inspection records were counted towards the reject rates and which "
+        "were set aside")
     assert len(reported) >= MIN_EXCLUSION_TOPICS, (
         "## Data Quality and Exclusions names %s but gives a reason for only "
-        "%d of the populations it set aside (%s); the prompt asks what was "
-        "excluded from the source data and why"
+        "%d of the populations it set aside (%s); the prompt asks what else "
+        "was excluded from the source data and why"
         % (NON_CANDIDATE, len(reported), ", ".join(reported) or "none"))
 
 

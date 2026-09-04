@@ -114,17 +114,30 @@ each route against the shipped verifier.
     5): USD 11,262.50 for SUP-1042 against USD 14,938.75 for SUP-4077. Leaving
     it out hands SUP-4077 the award.
 
+## The cost model is a deliverable
+
+`cost_buildup.csv` takes one row per cost element the attempt charged each
+supplier — the attempt's own labels, bound only by the rule that a supplier's
+elements sum to the total it filed in `supplier_costs.csv`. Nothing in the
+prompt says what the elements are, so it stays a disclosure duty rather than
+the specification that made revisions 2 and 3 solvable by transcription.
+
+It is there for two reasons. The verifier and the rubric can grade the whole
+cost model as data rather than as prose, which is what the audit kept failing:
+regex proxies over a memo are never objective enough. And an attempt that
+never modelled scrap or the working-capital value of payment terms — the
+profile the last model sweep produced — has no row carrying those amounts, so
+it now fails the build-up file as well as every total that depends on them.
+
 ## What the memo has to disclose
 
-`instruction.md` asks each memo section for the basis behind its figures, not
-just the figures: the build-up of every supplier's FY2026 total (every element
-charged, labelled, in US dollars, adding to the filed total); which inspection
-records were counted and which set aside, with the reason; where the good-unit
-requirement came from and how each purchase quantity follows from it; and the
-basis on which quoted prices were restated. That is a duty to disclose method,
-never a list of the method's steps — nothing tells the attempt which records to
-set aside, which purchase-order numbers need resolving, or which plan cycle is
-the plan of record beyond the handover note's designation.
+What is left in the memo is what prose is good for and a test can settle from
+the file: which inspection records were counted towards the reject rates and
+which were set aside, with the reason; where in the demand data the good-unit
+requirement came from; why each supplier that lost loses. Nothing tells the
+attempt which records to set aside, which purchase-order numbers need
+resolving, or which plan cycle is the plan of record beyond the handover
+note's designation.
 
 It exists for two reasons. It makes the rubric gradable from the deliverable:
 every criterion scores a disclosure the prompt asks for by name, which is what

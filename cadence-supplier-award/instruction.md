@@ -23,7 +23,7 @@ SP-40 contract to, and make the case for it.
 
 ## Deliverables
 
-Write all three files to `/workspace/output/`. Only files in that directory are
+Write all four files to `/workspace/output/`. Only files in that directory are
 reviewed; nothing you say outside of them counts.
 
 ### 1. `/workspace/output/supplier_costs.csv`
@@ -74,7 +74,30 @@ supplier_code,lots_inspected,units_inspected,units_rejected,reject_rate_pct
 pieces, to 3 decimal places (for example `4.250` means 4.25%). The same numeric
 formatting and rounding rules as above apply.
 
-### 3. `/workspace/output/recommendation.md`
+### 3. `/workspace/output/cost_buildup.csv`
+
+How each supplier's FY2026 total is built up, one row per cost element you
+charged that supplier, for all four candidates, with this header line exactly:
+
+```
+supplier_code,cost_element,amount_usd
+```
+
+| Field | Type and precision |
+| --- | --- |
+| `supplier_code` | The supplier's code as it appears in the supplier master |
+| `cost_element` | Your own short label for the element: lower case, letters, digits and underscores only, at most 32 characters |
+| `amount_usd` | The US-dollar amount charged for that element, 2 decimal places, negative where the element reduces the cost |
+
+You choose the elements and what to call them. Two rules bind them: give each
+element you charged its own row rather than folding it into another, and for
+each supplier the `amount_usd` values must add up to that supplier's
+`total_fy2026_cost_usd` in `supplier_costs.csv`, allowing only the rounding of
+theelements themselves — half a cent per row written. Do not write the total
+itself as an element. Rows sorted by `supplier_code` ascending, then by
+`cost_element` ascending. The same numeric formatting rule as above applies.
+
+### 4. `/workspace/output/recommendation.md`
 
 The memo for the steering committee, containing these five level-2 headings,
 spelled exactly this way and in this order:
@@ -93,20 +116,15 @@ Each section must contain **at least 30 words**, and must cover the following.
   code and its full legal name; the FY2026 purchase quantity you would
   contract with it; that supplier's FY2026 total cost in US dollars; and the
   US-dollar amount by which it beats the second-ranked supplier over FY2026.
-- `## Cost Comparison` — all four suppliers, each with its FY2026 total cost;
-  the FY2026 good-unit requirement you worked to and where in the demand data
-  you took it from; how each supplier's purchase quantity follows from that
-  requirement; and the **build-up of each supplier's FY2026 total cost** —
-  every cost element you charged that supplier, labelled, as a US-dollar
-  amount, and adding up to the total you filed for it.
-- `## Basis of Decision` — what drives the ranking; why each of the three
-  suppliers you did not pick loses, naming each of them; and the basis on
-  which you restated each supplier's quoted price to US dollars per piece.
-- `## Data Quality and Exclusions` — the basis on which you computed each
-  supplier's reject rate, which inspection records you counted and which you
-  set aside, with the reason in each case; anything else you excluded from the
-  source data and why; and every supplier that appears in the source data but
-  is not a candidate for this award.
+- `## Cost Comparison` — all four suppliers, each with its FY2026 total cost
+  as a US-dollar amount; and the FY2026 good-unit requirement you worked to,
+  saying where in the demand data you took it from.
+- `## Basis of Decision` — what drives the ranking, and why each of the three
+  suppliers you did not pick loses, naming each of them.
+- `## Data Quality and Exclusions` — which inspection records you counted
+  towards the reject rates and which you set aside, with the reason; anything
+  else you excluded from the source data and why; and every supplier that
+  appears in the source data but is not a candidate for this award.
 - `## Risks and Sensitivities` — the risks attached to the supplier you
   picked, and what would have to change to overturn the recommendation, stated
   as a quantity.

@@ -362,6 +362,22 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
                         r["units"], "{:.2f}".format(r["total"]),
                         "{:.4f}".format(r["per_good"]), r["rank"]])
 
+    # how each total is built up: one row per element charged, summing to the
+    # total filed above. The labels are this solution's own; the prompt leaves
+    # the decomposition to the attempt and binds only the sum.
+    elements = [("material", "material"), ("inbound_freight", "freight"),
+                ("volume_rebate", "rebate"), ("shortfall_charge", "shortfall"),
+                ("scrap_disposal", "scrap"), ("payment_terms", "terms")]
+    with open(OUT / "cost_buildup.csv", "w", encoding="utf-8", newline="") as fh:
+        w = csv.writer(fh, lineterminator="\n")
+        w.writerow(["supplier_code", "cost_element", "amount_usd"])
+        for code in sorted(CANDIDATES):
+            r = rows[code]
+            charged = [(label, -r[key] if key == "rebate" else r[key])
+                       for label, key in elements]
+            for label, amount in sorted(charged):
+                w.writerow([code, label, "{:.2f}".format(amount + 0.0)])
+
     with open(OUT / "defect_rates.csv", "w", encoding="utf-8", newline="\n") as fh:
         fh.write("supplier_code,lots_inspected,units_inspected,units_rejected,"
                  "reject_rate_pct\n")

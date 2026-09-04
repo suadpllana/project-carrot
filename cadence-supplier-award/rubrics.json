@@ -196,107 +196,107 @@
   {
     "item": 20,
     "weight": 4,
-    "criterion": "The cost build-up in the `## Cost Comparison` section of recommendation.md charges SUP-4077 a shortfall charge of USD 9,816.21 or USD 9,816 and no volume rebate.",
+    "criterion": "cost_buildup.csv charges SUP-4077 an element of USD 9,816.21 for the shortfall on its volume commitment and no element crediting a volume rebate.",
     "category": "analyze",
-    "verification_type": "text",
+    "verification_type": "file_structure",
     "grades_output_files": [
-      "recommendation.md"
+      "cost_buildup.csv"
     ]
   },
   {
     "item": 21,
     "weight": 4,
-    "criterion": "The cost build-up in the `## Cost Comparison` section of recommendation.md charges SUP-2318 a volume rebate of USD 11,010.75 or USD 11,011, the figure a band-by-band reading gives rather than the USD 28,197.15 of a flat 3.0%.",
+    "criterion": "cost_buildup.csv charges SUP-2318 a volume rebate element of USD -11,010.75, the figure a band-by-band reading gives rather than the USD -28,197.15 of a flat 3.0%.",
     "category": "analyze",
-    "verification_type": "text",
+    "verification_type": "file_structure",
     "grades_output_files": [
-      "recommendation.md"
+      "cost_buildup.csv"
     ]
   },
   {
     "item": 22,
     "weight": 3,
-    "criterion": "The `## Cost Comparison` section of recommendation.md states that SUP-2318's purchase quantity of 492,200 pieces is the grossed-up requirement rounded up to a whole 100-piece box.",
+    "criterion": "supplier_costs.csv gives SUP-2318 a units_to_purchase of 492,200, the grossed-up requirement rounded up to a whole 100-piece box.",
     "category": "analyze",
-    "verification_type": "text",
+    "verification_type": "file_structure",
     "grades_output_files": [
-      "recommendation.md"
+      "supplier_costs.csv"
     ]
   },
   {
     "item": 23,
     "weight": 4,
-    "criterion": "The cost build-up in the `## Cost Comparison` section of recommendation.md charges inbound freight of USD 36,276.40 or USD 36,276 to SUP-2318 and USD 35,121.16 or USD 35,121 to SUP-4077, and charges none to SUP-1042 or SUP-3155.",
+    "criterion": "cost_buildup.csv charges an inbound freight element of USD 36,276.40 to SUP-2318 and USD 35,121.16 to SUP-4077, and charges no freight to SUP-1042 or SUP-3155.",
     "category": "analyze",
-    "verification_type": "text",
+    "verification_type": "file_structure",
     "grades_output_files": [
-      "recommendation.md"
+      "cost_buildup.csv"
     ]
   },
   {
     "item": 24,
     "weight": 3,
-    "criterion": "The `## Basis of Decision` section of recommendation.md gives the basis on which quoted prices were restated to US dollars per piece, stating that SUP-2318's offer is priced per 100-piece box and restating it as USD 1.9096 per piece.",
+    "criterion": "supplier_costs.csv gives SUP-2318 a quoted_price_usd_per_unit of 1.9096, its per-box offer restated to US dollars per single piece at the mandated planning rate.",
     "category": "analyze",
-    "verification_type": "text",
+    "verification_type": "file_structure",
     "grades_output_files": [
-      "recommendation.md"
+      "supplier_costs.csv"
     ]
   },
   {
     "item": 25,
     "weight": 3,
-    "criterion": "The `## Basis of Decision` section of recommendation.md states that quoted prices were restated at the mandated FY2026 planning exchange rates rather than at the 2025 daily FX export.",
+    "criterion": "The quoted_price_usd_per_unit values in supplier_costs.csv are the offers restated at the mandated FY2026 planning exchange rates rather than at the 2025 daily FX export: 1.9450, 1.9096, 1.8639 and 1.8254.",
     "category": "analyze",
-    "verification_type": "text",
+    "verification_type": "file_structure",
     "grades_output_files": [
-      "recommendation.md"
+      "supplier_costs.csv"
     ]
   },
   {
     "item": 26,
     "weight": 3,
-    "criterion": "The `## Cost Comparison` section of recommendation.md states that each purchase quantity is the good-unit requirement grossed up for that supplier's own reject rate, because rejected pieces are scrapped without supplier credit or replacement.",
+    "criterion": "The units_to_purchase values in supplier_costs.csv gross the 486,000-piece requirement up for each supplier's own reject rate: 495,010 for SUP-1042, 492,200 for SUP-2318, 517,572 for SUP-3155 and 497,951 for SUP-4077.",
     "category": "analyze",
-    "verification_type": "text",
+    "verification_type": "file_structure",
     "grades_output_files": [
-      "recommendation.md"
+      "supplier_costs.csv"
     ]
   },
   {
     "item": 27,
     "weight": 3,
-    "criterion": "The cost build-up in the `## Cost Comparison` section of recommendation.md charges SUP-1042 a payment-terms value of USD 14,244.08 or USD 14,244 in Cadence's favour.",
+    "criterion": "cost_buildup.csv charges SUP-1042 a payment-terms element of USD -14,244.08.",
     "category": "analyze",
-    "verification_type": "text",
+    "verification_type": "file_structure",
     "grades_output_files": [
-      "recommendation.md"
+      "cost_buildup.csv"
     ]
   },
   {
     "item": 28,
     "weight": 3,
-    "criterion": "The cost build-up in the `## Cost Comparison` section of recommendation.md charges SUP-4077 a payment-terms value of USD 6,723.99 or USD 6,724 in Cadence's favour, the value of its standard Net 60 date rather than of its 1% 10 early-settlement option.",
+    "criterion": "cost_buildup.csv charges SUP-4077 a payment-terms element of USD -6,723.99, the value of its standard Net 60 date rather than of its 1% 10 early-settlement option.",
     "category": "analyze",
-    "verification_type": "text",
+    "verification_type": "file_structure",
     "grades_output_files": [
-      "recommendation.md"
+      "cost_buildup.csv"
     ]
   },
   {
     "item": 29,
     "weight": 3,
-    "criterion": "The cost build-up in the `## Cost Comparison` section of recommendation.md charges SUP-1042 scrap disposal of USD 11,262.50 or USD 11,263 and SUP-3155 USD 39,465.00 or USD 39,465.",
+    "criterion": "cost_buildup.csv charges SUP-1042 a scrap element of USD 11,262.50 and SUP-3155 USD 39,465.00.",
     "category": "analyze",
-    "verification_type": "text",
+    "verification_type": "file_structure",
     "grades_output_files": [
-      "recommendation.md"
+      "cost_buildup.csv"
     ]
   },
   {
     "item": 30,
     "weight": 3,
-    "criterion": "The `## Basis of Decision` section of recommendation.md states what drives the ranking and says that the awarded supplier does not hold the lowest quoted price per piece of the four.",
+    "criterion": "The `## Basis of Decision` section of recommendation.md explains what drives the ranking and names each of SUP-2318, SUP-3155 and SUP-4077 with the reason it loses to the awarded supplier.",
     "category": "synthesize",
     "verification_type": "text",
     "grades_output_files": [
@@ -462,6 +462,19 @@
   },
   {
     "item": 46,
+    "weight": 3,
+    "criterion": "Every figure in supplier_costs.csv, defect_rates.csv, cost_buildup.csv and recommendation.md is one derived from the files supplied in /workspace/data/, with no outside market price, benchmark or index and no placeholder value.",
+    "category": "instruction_following",
+    "verification_type": "text",
+    "grades_output_files": [
+      "supplier_costs.csv",
+      "defect_rates.csv",
+      "cost_buildup.csv",
+      "recommendation.md"
+    ]
+  },
+  {
+    "item": 47,
     "weight": -6,
     "criterion": "PENALTY: recommendation.md cites a price, index, benchmark or cost figure attributed to a source outside the files supplied in /workspace/data.",
     "category": "instruction_following",
@@ -471,9 +484,9 @@
     ]
   },
   {
-    "item": 47,
+    "item": 48,
     "weight": -5,
-    "criterion": "PENALTY: recommendation.md adds a separately budgeted inbound freight cost for a supplier whose offer it identifies as delivered-duty-paid, or omits inbound freight for one it identifies as origin-term.",
+    "criterion": "PENALTY: a figure in any deliverable is attributed to a price, index, benchmark or market source outside the files supplied in /workspace/data/, or a required field is left blank or marked TBD.",
     "category": "analyze",
     "verification_type": "text",
     "grades_output_files": [
