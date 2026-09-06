@@ -18,7 +18,9 @@ matched against the archive that was built.
 It also refuses to build when the grading definition is out of bounds: the
 rubric outside the documented criterion count, weight cap or decision band, or
 a weights file that names a check `test_outputs.py` does not define (or misses
-one it does, which would score it at the silent default of 1).
+one it does, which would score it at the silent default of 1), or a check that
+asserts on a bare string the attempt was never shown - which is what the
+platform's format step refuses over.
 
 This does NOT run the local checks. Run them first - the nop agent must score
 0.000 and the oracle 1.000 against the same tree this zips.
@@ -28,6 +30,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import re
 import shutil
 import sys
 import zipfile
@@ -129,6 +132,53 @@ def validate_grading(task_dir: Path):
     return problems
 
 
+def undisclosed_literals(task_dir: Path):
+    """String literals a check asserts on that appear nowhere the agent can read.
+
+    The platform's format check refuses a package whose verifier grades against
+    a value the attempt was never told about. It reads that off the test module
+    as bare string literals inside `assert` statements - a literal carrying a
+    format placeholder is a diagnostic, not a graded value, and is exempt.
+
+    So a diagnostic must name its artefact, field or section through a
+    placeholder or a module constant rather than repeating the text inline.
+    That is better failure output anyway: the message names the real path.
+    """
+    module_path = task_dir / "tests" / "test_outputs.py"
+    if not module_path.is_file():
+        return []
+    readable = []
+    prompt = task_dir / "instruction.md"
+    if prompt.is_file():
+        readable.append(prompt.read_text(encoding="utf-8", errors="replace"))
+    env = task_dir / "environment"
+    if env.is_dir():
+        for path in env.rglob("*"):
+            if path.is_file():
+                try:
+                    readable.append(path.read_text(encoding="utf-8", errors="replace"))
+                except (OSError, UnicodeError):
+                    pass
+    readable = "\n".join(readable)
+
+    out, seen = [], set()
+    for node in ast.walk(ast.parse(module_path.read_text(encoding="utf-8"))):
+        if not isinstance(node, ast.Assert):
+            continue
+        for sub in ast.walk(node):
+            if not (isinstance(sub, ast.Constant) and isinstance(sub.value, str)):
+                continue
+            text = sub.value.strip()
+            if not text or re.search(r"%[srdfi%]|\{\}", text):
+                continue
+            if text in readable or text in seen:
+                continue
+            seen.add(text)
+            out.append("tests/test_outputs.py:%d asserts on %r, which appears "
+                       "nowhere the agent can read" % (sub.lineno, text[:60]))
+    return out
+
+
 def purge_caches(task_dir: Path):
     """Delete build caches from the task tree itself, not just from the zip."""
     removed = []
@@ -191,7 +241,7 @@ def main(argv):
         if not (task_dir / name).is_file():
             print("warning: %s has no %s; it is required before grading" % (task, name))
 
-    problems = validate_grading(task_dir)
+    problems = validate_grading(task_dir) + undisclosed_literals(task_dir)
     if problems:
         print("refusing to build: the grading definition is out of bounds",
               file=sys.stderr)

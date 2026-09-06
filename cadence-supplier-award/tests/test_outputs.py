@@ -70,6 +70,31 @@ CANDIDATES = ["SUP-1042", "SUP-2318", "SUP-3155", "SUP-4077"]
 AWARD = "SUP-1042"
 RUNNER_UP = "SUP-4077"
 NON_CANDIDATE = "SUP-9001"
+# as the supplier master spells it; matched case-insensitively, because an
+# attempt may write the name in its own case
+NON_CANDIDATE_NAME = "Old Harbor Machine Company"
+# the two candidates whose own sentinel checks name them
+BOXED = "SUP-2318"          # quotes per 100-piece box, clause 1
+WORST_QUALITY = "SUP-3155"  # its post-cutover lots carry most of its rejects
+
+# Section headings, exactly as instruction.md spells them. Held as constants so
+# a diagnostic can name the section instead of repeating its text inline.
+SEC_RECOMMENDATION = "## Recommendation"
+SEC_COST_COMPARISON = "## Cost Comparison"
+SEC_BASIS = "## Basis of Decision"
+SEC_DATA_QUALITY = "## Data Quality and Exclusions"
+SEC_RISKS = "## Risks and Sensitivities"
+
+# One of the populations `## Data Quality and Exclusions` has to account for.
+TOPIC_SOURCE_INSPECTIONS = "source inspections"
+NOTHING_REPORTED = "none"
+# the shortest form of the non-candidate's name an attempt is likely to write
+NON_CANDIDATE_SHORT = " ".join(NON_CANDIDATE_NAME.split()[:2])
+# the ends of the contract year, as a diagnostic names them
+CONTRACT_FROM_LABEL = "April 2026"
+CONTRACT_TO_LABEL = "March 2027"
+# every penalty says this when it declines to fire
+NOT_CHARGED = "penalty not charged"
 
 # The FY2026 contract year the four offers cover is 1 April 2026 - 31 March
 # 2027 (term-sheet header block; finance policy section 6). The planning cube
@@ -89,9 +114,8 @@ DEFECTS_HEADER = ["supplier_code", "lots_inspected", "units_inspected",
 BUILDUP_HEADER = ["supplier_code", "cost_element", "amount_usd"]
 ELEMENT_OK = re.compile(r"^[a-z0-9_]{1,32}$")
 
-REQUIRED_SECTIONS = ["## Recommendation", "## Cost Comparison",
-                     "## Basis of Decision", "## Data Quality and Exclusions",
-                     "## Risks and Sensitivities"]
+REQUIRED_SECTIONS = [SEC_RECOMMENDATION, SEC_COST_COMPARISON, SEC_BASIS,
+                     SEC_DATA_QUALITY, SEC_RISKS]
 
 # The legal names as the supplier master spells them.
 GOLD_NAME = {"SUP-1042": "Meridian Precision Works, LLC",
@@ -173,7 +197,7 @@ GOLD_DRIVERS = {
 # the spellings an attempt might use. The prompt asks what was excluded and
 # why, so naming the non-candidate supplier alone does not answer it.
 EXCLUSION_TOPICS = {
-    "source inspections": r"source[\s-]*inspect|\bSOURCE\b|at the (?:supplier|seller)'?s? plant",
+    TOPIC_SOURCE_INSPECTIONS: r"source[\s-]*inspect|\bSOURCE\b|at the (?:supplier|seller)'?s? plant",
     "the ERP renumbering": r"\bERP\b|go-?live|cut-?over|CHG-2025|po_reference|reporting number",
     "the superseded plan cycle": r"october|plan[_\s-]*cycle|s&op cycle|superseded|frozen",
     "the other part": r"SP-22",
@@ -495,7 +519,7 @@ def test_all_four_deliverables_exist():
 # ---------------------------------------------------------------------------
 def test_supplier_costs_contract():
     """Exact header, the four candidates, numeric formatting, sorted by rank."""
-    assert COSTS.is_file(), "supplier_costs.csv not produced"
+    assert COSTS.is_file(), "%s not produced" % COSTS.name
     first = next(csv.reader(io.StringIO(
         COSTS.read_text(encoding="utf-8", errors="replace"))), [])
     assert [c.strip() for c in first] == COSTS_HEADER, (
@@ -528,7 +552,7 @@ def test_supplier_names_match_master():
     """The whole legal name, not a fragment of it: punctuation and spacing may
     vary, a dropped legal suffix or an altered name may not."""
     rows, _ = costs_rows()
-    assert rows, "no parsable rows in supplier_costs.csv"
+    assert rows, "no parsable rows in %s" % COSTS.name
     for code, gold in GOLD_NAME.items():
         assert code in rows, "row for %s missing" % code
         assert name_key(rows[code][1]) == name_key(gold), (
@@ -538,7 +562,7 @@ def test_supplier_names_match_master():
 
 def test_defect_rates_contract():
     """Exact header, the four candidates sorted by code, reported precision."""
-    assert DEFECTS.is_file(), "defect_rates.csv not produced"
+    assert DEFECTS.is_file(), "%s not produced" % DEFECTS.name
     first = next(csv.reader(io.StringIO(
         DEFECTS.read_text(encoding="utf-8", errors="replace"))), [])
     assert [c.strip() for c in first] == DEFECTS_HEADER, (
@@ -570,7 +594,7 @@ def test_memo_has_required_sections_in_order():
     prompt asks that section for - a heading over an empty or filler body is
     not a delivered section."""
     text = memo_text()
-    assert text.strip(), "recommendation.md missing or empty"
+    assert text.strip(), "%s missing or empty" % MEMO.name
     found = re.findall(r"^##\s+.+$", text, re.MULTILINE)
     found = [h.strip() for h in found]
     missing = [s for s in REQUIRED_SECTIONS if s not in found]
@@ -610,8 +634,7 @@ def test_memo_has_required_sections_in_order():
 
     risks = section("Risks and Sensitivities")
     assert mentions(risks, AWARD), (
-        "## Risks and Sensitivities does not tie the risks to the awarded "
-        "supplier")
+        "%s does not tie the risks to the awarded supplier" % SEC_RISKS)
     # what would overturn the award is graded by the rubric against the figure
     # it has to be: this check keeps to what it can settle from the file, that
     # the section is about the supplier being awarded.
@@ -622,7 +645,7 @@ def test_memo_has_required_sections_in_order():
 # ---------------------------------------------------------------------------
 def test_award_is_correct_supplier():
     rows, _ = costs_rows()
-    assert rows, "no parsable rows in supplier_costs.csv"
+    assert rows, "no parsable rows in %s" % COSTS.name
     top = [c for c, r in rows.items() if r[6].strip() in ("1", "1.0")]
     assert len(top) == 1, "expected exactly one rank-1 row, found %s" % top
     assert top[0] == AWARD, (
@@ -637,9 +660,9 @@ def test_award_quantity_is_correct():
     incoming-only reject rate on every attributed lot and the gross-up.
     """
     top = rank_one_row()
-    assert top is not None, "no single rank-1 row in supplier_costs.csv"
+    assert top is not None, "no single rank-1 row in %s" % COSTS.name
     got = as_float(top[3])
-    assert got is not None, "rank-1 units_to_purchase is not numeric"
+    assert got is not None, "rank-1 %s is not numeric" % COSTS_HEADER[3]
     assert is_whole(got) and int(round(got)) == GOLD_UNITS[AWARD], (
         "the rank-1 row (%s) contracts %s pieces; the award is %d pieces of %s"
         % (top[0], top[3], GOLD_UNITS[AWARD], AWARD))
@@ -648,9 +671,9 @@ def test_award_quantity_is_correct():
 def test_award_total_is_correct():
     """The contract-year cost the committee signs: the rank-1 row's total."""
     top = rank_one_row()
-    assert top is not None, "no single rank-1 row in supplier_costs.csv"
+    assert top is not None, "no single rank-1 row in %s" % COSTS.name
     got = as_float(top[4])
-    assert got is not None, "rank-1 total_fy2026_cost_usd is not numeric"
+    assert got is not None, "rank-1 %s is not numeric" % COSTS_HEADER[4]
     assert at_precision(got, GOLD_TOTAL[AWARD], DP_TOTAL), (
         "the rank-1 row (%s) costs USD %s; the award costs USD %.2f"
         % (top[0], top[4], round(GOLD_TOTAL[AWARD], DP_TOTAL)))
@@ -665,9 +688,9 @@ def test_recommendation_names_correct_supplier():
     so that row has to be SUP-1042 for the mention to count.
     """
     body = section("Recommendation")
-    assert body.strip(), "## Recommendation section missing or empty"
+    assert body.strip(), "%s section missing or empty" % SEC_RECOMMENDATION
     top = rank_one_row()
-    assert top is not None, "no single rank-1 row in supplier_costs.csv"
+    assert top is not None, "no single rank-1 row in %s" % COSTS.name
     assert top[0] == AWARD, (
         "supplier_costs.csv ranks %s first, so that is the supplier this memo "
         "awards; the award goes to %s" % (top[0], AWARD))
@@ -698,22 +721,23 @@ def test_recommendation_states_quantity_total_and_margin():
     """The prompt asks the Recommendation section for the contract quantity,
     the total cost in US dollars and the US-dollar margin over the runner-up."""
     body = section("Recommendation")
-    assert body.strip(), "## Recommendation section missing or empty"
+    assert body.strip(), "%s section missing or empty" % SEC_RECOMMENDATION
     assert states_count(body, GOLD_UNITS[AWARD]), (
         "## Recommendation does not state the FY2026 purchase quantity of "
         "%d pieces" % GOLD_UNITS[AWARD])
     assert states_dollars(body, GOLD_TOTAL[AWARD]), (
-        "## Recommendation does not state the awarded supplier's FY2026 total "
-        "cost, USD %.2f, as a US-dollar amount" % round(GOLD_TOTAL[AWARD], 2))
+        "%s does not state the awarded supplier's FY2026 total cost, "
+        "USD %.2f, as a US-dollar amount"
+        % (SEC_RECOMMENDATION, round(GOLD_TOTAL[AWARD], 2)))
     assert states_dollars(body, GOLD_MARGIN), (
-        "## Recommendation does not state the US-dollar amount by which the "
-        "award beats the second-ranked supplier over FY2026, USD %.2f"
-        % round(GOLD_MARGIN, 2))
+        "%s does not state the US-dollar amount by which the award beats "
+        "the second-ranked supplier over FY2026, USD %.2f"
+        % (SEC_RECOMMENDATION, round(GOLD_MARGIN, 2)))
 
 
 def test_full_ranking_correct():
     rows, _ = costs_rows()
-    assert rows, "no parsable rows in supplier_costs.csv"
+    assert rows, "no parsable rows in %s" % COSTS.name
     raw = {c: as_float(r[6]) for c, r in rows.items()}
     assert all(v is not None and is_whole(v) for v in raw.values()), (
         "every rank must be an integer, got %s" % {c: r[6] for c, r in rows.items()})
@@ -723,7 +747,7 @@ def test_full_ranking_correct():
 
 def test_runner_up_identified():
     rows, _ = costs_rows()
-    assert rows, "no parsable rows in supplier_costs.csv"
+    assert rows, "no parsable rows in %s" % COSTS.name
     second = [c for c, r in rows.items() if r[6].strip() in ("2", "2.0")]
     assert second == [RUNNER_UP], (
         "supplier_costs.csv ranks %s second; expected %s" % (second, RUNNER_UP))
@@ -734,7 +758,7 @@ def test_runner_up_identified():
 # ---------------------------------------------------------------------------
 def test_defect_rates_lot_counts_correct():
     rows, _ = defects_rows()
-    assert rows, "no parsable rows in defect_rates.csv"
+    assert rows, "no parsable rows in %s" % DEFECTS.name
     for code, gold in GOLD_DEFECTS.items():
         assert code in rows, "row for %s missing" % code
         raw = as_float(rows[code][1])
@@ -749,7 +773,7 @@ def test_defect_rates_lot_counts_correct():
 
 def test_defect_rates_volumes_correct():
     rows, _ = defects_rows()
-    assert rows, "no parsable rows in defect_rates.csv"
+    assert rows, "no parsable rows in %s" % DEFECTS.name
     for code, gold in GOLD_DEFECTS.items():
         assert code in rows, "row for %s missing" % code
         units = as_float(rows[code][2])
@@ -766,7 +790,7 @@ def test_defect_rates_volumes_correct():
 
 def test_defect_rates_values_correct():
     rows, _ = defects_rows()
-    assert rows, "no parsable rows in defect_rates.csv"
+    assert rows, "no parsable rows in %s" % DEFECTS.name
     for code, gold in GOLD_DEFECTS.items():
         assert code in rows, "row for %s missing" % code
         got = as_float(rows[code][4])
@@ -782,7 +806,7 @@ def test_defect_rates_values_correct():
 # ---------------------------------------------------------------------------
 def test_quoted_prices_normalized():
     rows, _ = costs_rows()
-    assert rows, "no parsable rows in supplier_costs.csv"
+    assert rows, "no parsable rows in %s" % COSTS.name
     for code, gold in GOLD_PRICE.items():
         assert code in rows, "row for %s missing" % code
         got = as_float(rows[code][2])
@@ -794,7 +818,7 @@ def test_quoted_prices_normalized():
 
 def test_units_to_purchase_correct():
     rows, _ = costs_rows()
-    assert rows, "no parsable rows in supplier_costs.csv"
+    assert rows, "no parsable rows in %s" % COSTS.name
     for code, gold in GOLD_UNITS.items():
         assert code in rows, "row for %s missing" % code
         got = as_float(rows[code][3])
@@ -811,7 +835,7 @@ def test_units_to_purchase_correct():
 
 def test_total_costs_correct():
     rows, _ = costs_rows()
-    assert rows, "no parsable rows in supplier_costs.csv"
+    assert rows, "no parsable rows in %s" % COSTS.name
     for code, gold in GOLD_TOTAL.items():
         assert code in rows, "row for %s missing" % code
         got = as_float(rows[code][4])
@@ -823,7 +847,7 @@ def test_total_costs_correct():
 
 def test_cost_per_good_unit_correct():
     rows, _ = costs_rows()
-    assert rows, "no parsable rows in supplier_costs.csv"
+    assert rows, "no parsable rows in %s" % COSTS.name
     for code, gold in GOLD_PER_GOOD.items():
         assert code in rows, "row for %s missing" % code
         got = as_float(rows[code][5])
@@ -840,7 +864,7 @@ def test_cost_per_good_unit_uses_the_contract_year_requirement():
     read over that window is 493,000 pieces, read as calendar 2026 it is
     512,000 and read over the whole fifteen-month cube horizon 623,600."""
     rows, _ = costs_rows()
-    assert rows, "no parsable rows in supplier_costs.csv"
+    assert rows, "no parsable rows in %s" % COSTS.name
     for code, r in rows.items():
         total, per = as_float(r[4]), as_float(r[5])
         assert total is not None and per is not None, (
@@ -882,9 +906,12 @@ def test_reject_rates_carry_every_attributed_lot():
     attempt that attributed every lot reports 63 lots and 11,590 rejected
     pieces."""
     rows, _ = defects_rows()
-    assert rows and "SUP-3155" in rows, "no SUP-3155 row in defect_rates.csv"
-    lots, rejected = as_float(rows["SUP-3155"][1]), as_float(rows["SUP-3155"][3])
-    assert lots is not None and rejected is not None, "SUP-3155 figures not numeric"
+    assert rows and WORST_QUALITY in rows, ("no %s row in %s"
+                                            % (WORST_QUALITY, DEFECTS.name))
+    lots, rejected = (as_float(rows[WORST_QUALITY][1]),
+                      as_float(rows[WORST_QUALITY][3]))
+    assert lots is not None and rejected is not None, ("%s figures not numeric"
+                                                       % WORST_QUALITY)
     gold = GOLD_DEFECTS["SUP-3155"]
     assert int(round(lots)) == gold["lots"] and int(round(rejected)) == gold["rejected"], (
         "SUP-3155 is reported on %s lots with %s rejects; every attributed lot "
@@ -902,7 +929,7 @@ def test_buy_quantity_carries_only_the_scrapped_share():
     502,139 pieces for SUP-1042 and 504,431 against 505,124 for SUP-4077 - and
     the award turns on the difference."""
     rows, _ = costs_rows()
-    assert rows, "no parsable rows in supplier_costs.csv"
+    assert rows, "no parsable rows in %s" % COSTS.name
     for code in (AWARD, RUNNER_UP):
         assert code in rows, "row for %s missing" % code
         got = as_float(rows[code][3])
@@ -926,7 +953,7 @@ def test_disposal_charged_on_the_scrapped_pieces_only():
     the contract-year requirement and the scrapped share together, and no other
     reading of either produces them."""
     by = buildup_by_supplier()
-    assert by, "no parsable rows in cost_buildup.csv"
+    assert by, "no parsable rows in %s" % BUILDUP.name
     missing = []
     for code, value in sorted(GOLD_DISPOSAL.items()):
         amounts = [a for _, a in by.get(code, []) if a is not None]
@@ -962,9 +989,10 @@ def test_sup2318_bought_in_whole_boxes():
     """SUP-2318 tenders whole 100-piece boxes only (clause 1), so its
     purchase quantity is the grossed-up requirement rounded up to a box."""
     rows, _ = costs_rows()
-    assert rows and "SUP-2318" in rows, "no SUP-2318 row in supplier_costs.csv"
-    units = as_float(rows["SUP-2318"][3])
-    assert units is not None and is_whole(units), "SUP-2318 units_to_purchase not a whole number"
+    assert rows and BOXED in rows, "no %s row in %s" % (BOXED, COSTS.name)
+    units = as_float(rows[BOXED][3])
+    assert units is not None and is_whole(units), ("%s %s is not a whole number"
+                                                   % (BOXED, COSTS_HEADER[3]))
     units = int(round(units))
     assert units % BOX_2318 == 0, (
         "SUP-2318 units_to_purchase is %d, not a whole number of %d-piece boxes"
@@ -978,7 +1006,7 @@ def test_sup2318_bought_in_whole_boxes():
 # ---------------------------------------------------------------------------
 def test_memo_states_good_unit_requirement():
     body = section("Cost Comparison")
-    assert body.strip(), "## Cost Comparison section missing or empty"
+    assert body.strip(), "%s section missing or empty" % SEC_COST_COMPARISON
     tied = [u for u in statements(body) if states_count(u, GOOD_UNITS)
             and re.search(r"good[\s-]*units?|requirement|required|demand",
                           u, re.IGNORECASE)]
@@ -996,7 +1024,7 @@ def test_memo_cost_comparison_covers_all_four():
     """All four suppliers, each with the figure behind the ranking: its FY2026
     total cost, as filed in supplier_costs.csv."""
     body = section("Cost Comparison")
-    assert body.strip(), "## Cost Comparison section missing or empty"
+    assert body.strip(), "%s section missing or empty" % SEC_COST_COMPARISON
     rows, _ = costs_rows()
     units = statements(body)
     for code in CANDIDATES:
@@ -1014,13 +1042,13 @@ def test_memo_cost_comparison_covers_all_four():
 
 
 def test_cost_buildup_header_and_shape():
-    assert BUILDUP.is_file(), "cost_buildup.csv not produced"
+    assert BUILDUP.is_file(), "%s not produced" % BUILDUP.name
     first = next(csv.reader(io.StringIO(
         BUILDUP.read_text(encoding="utf-8", errors="replace"))), [])
     assert [c.strip() for c in first] == BUILDUP_HEADER, (
         "header is %r, expected %r" % (first, BUILDUP_HEADER))
     rows = buildup_rows()
-    assert rows, "no parsable rows in cost_buildup.csv"
+    assert rows, "no parsable rows in %s" % BUILDUP.name
     by = buildup_by_supplier()
     missing = [c for c in CANDIDATES if c not in by]
     assert not missing, "cost_buildup.csv carries no rows for %s" % ", ".join(missing)
@@ -1039,14 +1067,15 @@ def test_cost_buildup_header_and_shape():
             "%s repeats a cost_element; each element charged gets one row" % code)
     ordered = [(c, e) for c, e, _ in rows]
     assert ordered == sorted(ordered), (
-        "rows must be sorted by supplier_code then cost_element")
+        "rows must be sorted by %s then %s"
+        % (BUILDUP_HEADER[0], BUILDUP_HEADER[1]))
 
 
 def test_cost_buildup_sums_to_the_filed_total():
     """instruction.md binds the decomposition only by its sum."""
     costs, _ = costs_rows()
     by = buildup_by_supplier()
-    assert by, "no parsable rows in cost_buildup.csv"
+    assert by, "no parsable rows in %s" % BUILDUP.name
     for code in CANDIDATES:
         items = by.get(code)
         assert items, "cost_buildup.csv carries no rows for %s" % code
@@ -1066,7 +1095,7 @@ def test_cost_buildup_material_correct():
     """The material line is the purchase quantity at the offered price restated
     in US dollars per single piece at the mandated planning rates."""
     by = buildup_by_supplier()
-    assert by, "no parsable rows in cost_buildup.csv"
+    assert by, "no parsable rows in %s" % BUILDUP.name
     missing = []
     for code, value in sorted(GOLD_MATERIAL.items()):
         amounts = [a for _, a in by.get(code, []) if a is not None]
@@ -1085,7 +1114,7 @@ def test_cost_buildup_freight_rebate_and_shortfall_correct():
     The labels are the attempt's own, so only the amounts are matched,
     as one element or as several adding to it."""
     by = buildup_by_supplier()
-    assert by, "no parsable rows in cost_buildup.csv"
+    assert by, "no parsable rows in %s" % BUILDUP.name
     wanted = {code: [("inbound freight", v)] for code, v in GOLD_FREIGHT.items()}
     wanted.setdefault("SUP-2318", []).append(("banded volume rebate", GOLD_REBATE_2318))
     wanted.setdefault("SUP-4077", []).append(("volume shortfall charge", GOLD_SHORTFALL_4077))
@@ -1108,7 +1137,7 @@ def test_cost_buildup_charges_the_working_capital_value():
     as several adding to it. An attempt that never
     modelled working capital has no row of that size."""
     by = buildup_by_supplier()
-    assert by, "no parsable rows in cost_buildup.csv"
+    assert by, "no parsable rows in %s" % BUILDUP.name
     missing = []
     for code, wanted in sorted(GOLD_BUILDUP.items()):
         amounts = [a for _, a in by.get(code, []) if a is not None]
@@ -1126,13 +1155,13 @@ def test_memo_states_the_contract_year_window():
     1 April 2026 to 31 March 2027 and the cube dump is a rolling fifteen-month
     horizon, so the period is a statement the memo has to make."""
     body = section("Cost Comparison")
-    assert body.strip(), "## Cost Comparison section missing or empty"
+    assert body.strip(), "%s section missing or empty" % SEC_COST_COMPARISON
     assert re.search(CONTRACT_WINDOW_FROM, body, re.IGNORECASE), (
-        "## Cost Comparison does not say the FY2026 requirement covers a "
-        "period starting April 2026")
+        "%s does not say the FY2026 requirement covers a period starting %s"
+        % (SEC_COST_COMPARISON, CONTRACT_FROM_LABEL))
     assert re.search(CONTRACT_WINDOW_TO, body, re.IGNORECASE), (
-        "## Cost Comparison does not say the FY2026 requirement covers a "
-        "period ending March 2027")
+        "%s does not say the FY2026 requirement covers a period ending %s"
+        % (SEC_COST_COMPARISON, CONTRACT_TO_LABEL))
 
 
 def test_memo_reports_the_reject_disposition_split():
@@ -1143,7 +1172,7 @@ def test_memo_reports_the_reject_disposition_split():
     them has the figure: 5,565 of the 21,434 rejected pieces went back, leaving
     15,869 scrapped."""
     body = section("Data Quality and Exclusions")
-    assert body.strip(), "## Data Quality and Exclusions section missing or empty"
+    assert body.strip(), "%s section missing or empty" % SEC_DATA_QUALITY
     tied = [u for u in statements(body)
             if re.search(DISPOSITION_WORDS, u, re.IGNORECASE)
             and (states_count(u, RETURNED_TOTAL) or states_count(u, SCRAPPED_TOTAL))]
@@ -1159,10 +1188,11 @@ def test_memo_flags_non_candidate_supplier():
     """The prompt asks this section for what was excluded and why, and for
     every supplier in the source data that is not a candidate."""
     body = section("Data Quality and Exclusions")
-    assert body.strip(), "## Data Quality and Exclusions section missing or empty"
-    assert (NON_CANDIDATE in body or "old harbor" in body.casefold()), (
-        "## Data Quality and Exclusions does not identify %s, the supplier that "
-        "appears in the source data but is not a candidate" % NON_CANDIDATE)
+    assert body.strip(), "%s section missing or empty" % SEC_DATA_QUALITY
+    assert (NON_CANDIDATE in body
+            or NON_CANDIDATE_SHORT.casefold() in body.casefold()), (
+        "%s does not identify %s, the supplier that appears in the source "
+        "data but is not a candidate" % (SEC_DATA_QUALITY, NON_CANDIDATE))
     # each population has to be reported WITH a reason, per instruction.md
     reported = []
     for name, pattern in EXCLUSION_TOPICS.items():
@@ -1173,28 +1203,29 @@ def test_memo_flags_non_candidate_supplier():
                 break
     # instruction.md names one of these explicitly: which inspection records
     # were counted towards the reject rates and which were set aside, and why
-    assert "source inspections" in reported, (
-        "## Data Quality and Exclusions does not say, with a reason, which "
-        "inspection records were counted towards the reject rates and which "
-        "were set aside")
+    assert TOPIC_SOURCE_INSPECTIONS in reported, (
+        "%s does not say, with a reason, which inspection records were "
+        "counted towards the reject rates and which were set aside"
+        % SEC_DATA_QUALITY)
     assert len(reported) >= MIN_EXCLUSION_TOPICS, (
-        "## Data Quality and Exclusions names %s but gives a reason for only "
-        "%d of the populations it set aside (%s); the prompt asks what else "
-        "was excluded from the source data and why"
-        % (NON_CANDIDATE, len(reported), ", ".join(reported) or "none"))
+        "%s names %s but gives a reason for only %d of the populations it "
+        "set aside (%s); the prompt asks what else was excluded from the "
+        "source data and why"
+        % (SEC_DATA_QUALITY, NON_CANDIDATE, len(reported),
+           ", ".join(reported) or NOTHING_REPORTED))
 
 
 def test_memo_totals_agree_with_costs_file():
     rows, _ = costs_rows()
     body = section("Cost Comparison")
-    assert rows, "no parsable rows in supplier_costs.csv"
-    assert body.strip(), "## Cost Comparison section missing or empty"
+    assert rows, "no parsable rows in %s" % COSTS.name
+    assert body.strip(), "%s section missing or empty" % SEC_COST_COMPARISON
     assert AWARD in rows, "row for %s missing from supplier_costs.csv" % AWARD
     filed = as_float(rows[AWARD][4])
     assert filed is not None, "%s total_fy2026_cost_usd is not numeric" % AWARD
     assert states_money(body, filed), (
-        "## Cost Comparison does not carry the awarded supplier's total from "
-        "supplier_costs.csv, USD %.2f" % filed)
+        "%s does not carry the awarded supplier's total from %s, USD %.2f"
+        % (SEC_COST_COMPARISON, COSTS.name, filed))
 
 
 # ---------------------------------------------------------------------------
@@ -1204,24 +1235,25 @@ def test_penalty_award_is_split_or_deferred():
     """Prompt forbids splitting, dual-sourcing, staging or deferring."""
     body = section("Recommendation")
     if not body.strip():
-        assert False, "no ## Recommendation section to judge; penalty not charged"
+        assert False, ("no %s section to judge; %s"
+                       % (SEC_RECOMMENDATION, NOT_CHARGED))
     low = body.casefold()
     banned = ["dual-source", "dual source", "dual-sourcing", "split the award",
               "split award", "splitting the award", "two suppliers",
               "defer the decision", "defer the award", "stage the award",
               "staged award", "phased award"]
     hit = [p for p in banned if p in low]
-    assert hit, "no split/deferral language found; penalty not charged"
+    assert hit, "no split/deferral language found; %s" % NOT_CHARGED
 
 
 def test_penalty_memo_contains_placeholder_values():
     """Prompt forbids placeholder or unfilled figures."""
     text = memo_text()
     if not text.strip():
-        assert False, "no memo to judge; penalty not charged"
+        assert False, "no %s to judge; %s" % (MEMO.name, NOT_CHARGED)
     hits = re.findall(r"\bTBD\b|\bTODO\b|\bXXX+\b|\[insert[^\]]*\]|\bFIXME\b",
                       text, re.IGNORECASE)
-    assert hits, "no placeholder markers found; penalty not charged"
+    assert hits, "no placeholder markers found; %s" % NOT_CHARGED
 
 
 def test_penalty_memo_total_contradicts_costs_file():
@@ -1235,19 +1267,20 @@ def test_penalty_memo_total_contradicts_costs_file():
     rows, _ = costs_rows()
     body = section("Recommendation")
     if not rows or not body.strip():
-        assert False, "not enough output to judge; penalty not charged"
+        assert False, "not enough output to judge; %s" % NOT_CHARGED
     # the attempt's OWN rank-1 supplier, not the ground-truth award: this is an
     # internal-contradiction check and must be independent of whether the
     # decision itself is right
     top = [c for c, r in rows.items() if r[6].strip() in ("1", "1.0")]
     if len(top) != 1:
-        assert False, "no single rank-1 row to compare against; penalty not charged"
+        assert False, ("no single rank-1 row to compare against; %s"
+                       % NOT_CHARGED)
     try:
         stated = float(rows[top[0]][4])
     except ValueError:
-        assert False, "rank-1 total is not numeric; penalty not charged"
+        assert False, "rank-1 total is not numeric; %s" % NOT_CHARGED
     candidates = [v for v in numbers_in(body) if 100_000 <= v <= 100_000_000]
     if not candidates:
-        assert False, "memo states no total-sized figure; penalty not charged"
+        assert False, ("memo states no total-sized figure; %s" % NOT_CHARGED)
     assert not any(close(v, stated, 0.005) for v in candidates), (
-        "memo agrees with supplier_costs.csv; penalty not charged")
+        "memo agrees with %s; %s" % (COSTS.name, NOT_CHARGED))

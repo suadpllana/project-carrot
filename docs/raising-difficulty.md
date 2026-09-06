@@ -387,6 +387,21 @@ forty lines. Keep the *image* preinstalling whatever an analyst would expect —
 the constraint is on the reference solution and the provenance tooling, not on
 the attempt.
 
+**Diagnostics are not graded values, but a linter cannot tell.** The platform's
+format step refuses a package whose verifier "grades against" a string that
+appears nowhere the attempt can read, and it reads that off the test module as
+bare string literals inside `assert` statements. Every assertion *message* that
+repeats a filename, a section heading or a field name inline therefore reads as
+an undisclosed graded value: `assert COSTS.is_file(), "supplier_costs.csv not
+produced"` is a finding, `assert COSTS.is_file(), "%s not produced" % COSTS.name`
+is not. Note the checker sees each implicitly concatenated piece separately, so
+in a wrapped message every piece needs its placeholder. Build diagnostics from
+module constants and format strings - it satisfies the rule and the message
+names the real path instead of a copy of it. Cadence carried 42 such literals
+for six revisions without anyone running the check; catching it cost a
+submission cycle. Put the rule in your own packaging script so the archive
+cannot be built while it is broken.
+
 **Do not write test files through shell heredocs.** Mine silently turned a
 regex word boundary into a literal backspace character, so the pattern could
 never match and the check was dead. It only surfaced because the reference
