@@ -66,13 +66,21 @@ is budgeted for that supplier.
 
 ## 5. Scrap and disposal
 
-Pieces rejected at incoming inspection are moved to the scrap cage and
+Pieces **scrapped** at incoming inspection are moved to the scrap cage and
 disposed of under the Aurora waste contract. The standing burdened rate for
-FY2026 is **USD 1.25 per rejected piece**, covering segregation, handling,
+FY2026 is **USD 1.25 per scrapped piece**, covering segregation, handling,
 documentation and disposal.
+
+Nonconforming pieces that leave the site on a return authorisation are not
+disposed of by Cadence and carry no disposal charge. Return freight and
+handling on authorised returns are borne by the supplier under the standing
+supply agreements and are not budgeted by Cadence.
 
 ## 6. Presentation
 
+**Cadence's fiscal year 2026 runs from 1 April 2026 to 31 March 2027.**
+
 All sourcing award cases are presented in **US dollars** on a **full contract
-year** basis. Do not annualize from a partial period and do not present a
-case in a supplier's invoicing currency.
+year** basis. Do not annualize from a partial period, do not present a case
+for a period other than the contract year the offer covers, and do not present
+a case in a supplier's invoicing currency.

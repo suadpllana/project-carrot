@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Apply the complete gold solution: read the shipped inputs under
-# /workspace/data and materialize the three graded deliverables under
+# /workspace/data and materialize the four graded deliverables under
 # /workspace/output. Deterministic and safe to run once in a fresh
 # environment. Keep gold.patch beside this script in sync - it is the
 # reviewable statement of this change.

@@ -10,10 +10,10 @@ new file mode 100644
 +++ b/output/supplier_costs.csv
 @@ -0,0 +1,5 @@
 +supplier_code,supplier_name,quoted_price_usd_per_unit,units_to_purchase,total_fy2026_cost_usd,cost_per_good_unit_usd,rank
-+SUP-1042,"Meridian Precision Works, LLC",1.9450,495010,959812.87,1.9749,1
-+SUP-4077,Brackenridge Tooling Ltd,1.8254,497951,962135.40,1.9797,2
-+SUP-2318,Rheinwerk Feinmechanik GmbH,1.9096,492200,972920.77,2.0019,3
-+SUP-3155,"Talleres Nortenos, S.A. de C.V.",1.8639,517572,997031.30,2.0515,4
++SUP-1042,"Meridian Precision Works, LLC",1.9450,494936,950828.57,1.9287,1
++SUP-4077,Brackenridge Tooling Ltd,1.7905,504431,953203.26,1.9335,2
++SUP-2318,Rheinwerk Feinmechanik GmbH,1.8662,498500,962729.48,1.9528,3
++SUP-3155,"Talleres Nortenos, S.A. de C.V.",1.8285,517815,970826.72,1.9692,4
 diff --git a/output/defect_rates.csv b/output/defect_rates.csv
 new file mode 100644
 --- /dev/null
@@ -31,89 +31,93 @@ new file mode 100644
 @@ -0,0 +1,25 @@
 +supplier_code,cost_element,amount_usd
 +SUP-1042,inbound_freight,0.00
-+SUP-1042,material,962794.45
-+SUP-1042,payment_terms,-14244.08
-+SUP-1042,scrap_disposal,11262.50
++SUP-1042,material,962650.52
++SUP-1042,payment_terms,-14241.95
++SUP-1042,scrap_disposal,2420.00
 +SUP-1042,shortfall_charge,0.00
 +SUP-1042,volume_rebate,0.00
-+SUP-2318,inbound_freight,36276.40
-+SUP-2318,material,939905.12
++SUP-2318,inbound_freight,36667.00
++SUP-2318,material,930300.70
 +SUP-2318,payment_terms,0.00
-+SUP-2318,scrap_disposal,7750.00
++SUP-2318,scrap_disposal,6875.00
 +SUP-2318,shortfall_charge,0.00
-+SUP-2318,volume_rebate,-11010.75
++SUP-2318,volume_rebate,-11113.22
 +SUP-3155,inbound_freight,0.00
-+SUP-3155,material,964702.45
-+SUP-3155,payment_terms,-7136.16
-+SUP-3155,scrap_disposal,39465.00
++SUP-3155,material,946811.78
++SUP-3155,payment_terms,-7003.81
++SUP-3155,scrap_disposal,31018.75
 +SUP-3155,shortfall_charge,0.00
 +SUP-3155,volume_rebate,0.00
-+SUP-4077,inbound_freight,35121.16
-+SUP-4077,material,908983.26
-+SUP-4077,payment_terms,-6723.99
-+SUP-4077,scrap_disposal,14938.75
-+SUP-4077,shortfall_charge,9816.21
++SUP-4077,inbound_freight,35497.00
++SUP-4077,material,903167.16
++SUP-4077,payment_terms,-6680.96
++SUP-4077,scrap_disposal,14288.75
++SUP-4077,shortfall_charge,6931.32
 +SUP-4077,volume_rebate,0.00
 diff --git a/output/recommendation.md b/output/recommendation.md
 new file mode 100644
 --- /dev/null
 +++ b/output/recommendation.md
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,88 @@
 +# FY2026 SP-40 valve-seat sourcing award
 +
-+Prepared for the sourcing steering committee. All figures in US dollars at the mandated FY2026 planning rates, for the full contract year 1 January – 31 December 2026.
++Prepared for the sourcing steering committee. All figures in US dollars at the mandated FY2026 planning rates, for the full contract year 1 April 2026 - 31 March 2027.
 +
 +## Recommendation
 +
-+Award the full FY2026 SP-40 volume to **Meridian Precision Works, LLC (SUP-1042)**, contracting **495,010 pieces** for the contract year.
++Award the full FY2026 SP-40 volume to **Meridian Precision Works, LLC (SUP-1042)**, contracting **494,936 pieces** for the contract year.
 +
-+Its FY2026 total cost to Cadence is **USD 959812.87**, which is **USD 2322.53 lower over the contract year** than the second-ranked offer from Brackenridge Tooling Ltd (SUP-4077, USD 962135.40). On a cost-per-good-unit basis that is USD 1.9749 against USD 1.9797, a 0.24% advantage.
++Its FY2026 total cost to Cadence is **USD 950828.57**, which is **USD 2374.70 lower over the contract year** than the second-ranked offer from Brackenridge Tooling Ltd (SUP-4077, USD 953203.26). On a cost-per-good-unit basis that is USD 1.9287 against USD 1.9335, a 0.25% advantage.
 +
 +This is a single-supplier award for the full contract-year volume, as directed.
 +
 +## Cost Comparison
 +
-+The FY2026 good-unit requirement worked to is **486,000 SP-40 pieces** — the twelve monthly SP-40 rows of the frozen November S&OP cycle. The cube dump's October cycle, its `TOTAL` subtotal rows and all SP-22 rows are excluded; SP-22 is the FM-90 orifice plate and is sourced separately.
++The FY2026 good-unit requirement worked to is **493,000 SP-40 pieces** - the twelve monthly SP-40 rows of the frozen November S&OP cycle that fall in the contract year the four offers cover, April 2026 through March 2027. The cube dump is a rolling fifteen-month horizon, so its January-March 2026 rows sit before the contract year and are excluded; so are the superseded October cycle, the `TOTAL` subtotal rows and every SP-22 row. Read as calendar 2026 the same cycle gives 512,000 pieces and read whole it gives 623,600; neither is the period this contract covers.
 +
 +| supplier_code | supplier_name | quoted USD/piece | units to purchase | FY2026 total USD | USD per good unit | rank |
 +| --- | --- | --- | --- | --- | --- | --- |
-+| SUP-1042 | Meridian Precision Works, LLC | USD 1.9450 | 495,010 | USD 959812.87 | USD 1.9749 | 1 |
-+| SUP-4077 | Brackenridge Tooling Ltd | USD 1.8254 | 497,951 | USD 962135.40 | USD 1.9797 | 2 |
-+| SUP-2318 | Rheinwerk Feinmechanik GmbH | USD 1.9096 | 492,200 | USD 972920.77 | USD 2.0019 | 3 |
-+| SUP-3155 | Talleres Nortenos, S.A. de C.V. | USD 1.8639 | 517,572 | USD 997031.30 | USD 2.0515 | 4 |
++| SUP-1042 | Meridian Precision Works, LLC | USD 1.9450 | 494,936 | USD 950828.57 | USD 1.9287 | 1 |
++| SUP-4077 | Brackenridge Tooling Ltd | USD 1.7905 | 504,431 | USD 953203.26 | USD 1.9335 | 2 |
++| SUP-2318 | Rheinwerk Feinmechanik GmbH | USD 1.8662 | 498,500 | USD 962729.48 | USD 1.9528 | 3 |
++| SUP-3155 | Talleres Nortenos, S.A. de C.V. | USD 1.8285 | 517,815 | USD 970826.72 | USD 1.9692 | 4 |
 +
 +Build-up of each supplier's FY2026 total cost. Every element charged is shown; the elements add up to the total filed in supplier_costs.csv.
 +
 +| supplier_code | material | inbound freight | volume rebate | shortfall charge | scrap disposal | payment terms | total |
 +| --- | --- | --- | --- | --- | --- | --- | --- |
-+| SUP-1042 | USD 962794.45 | USD 0.00 | USD 0.00 | USD 0.00 | USD 11262.50 | USD -14244.08 | USD 959812.87 |
-+| SUP-4077 | USD 908983.26 | USD 35121.16 | USD 0.00 | USD 9816.21 | USD 14938.75 | USD -6723.99 | USD 962135.40 |
-+| SUP-2318 | USD 939905.12 | USD 36276.40 | USD -11010.75 | USD 0.00 | USD 7750.00 | USD 0.00 | USD 972920.77 |
-+| SUP-3155 | USD 964702.45 | USD 0.00 | USD 0.00 | USD 0.00 | USD 39465.00 | USD -7136.16 | USD 997031.30 |
++| SUP-1042 | USD 962650.52 | USD 0.00 | USD 0.00 | USD 0.00 | USD 2420.00 | USD -14241.95 | USD 950828.57 |
++| SUP-4077 | USD 903167.16 | USD 35497.00 | USD 0.00 | USD 6931.32 | USD 14288.75 | USD -6680.96 | USD 953203.26 |
++| SUP-2318 | USD 930300.70 | USD 36667.00 | USD -11113.22 | USD 0.00 | USD 6875.00 | USD 0.00 | USD 962729.48 |
++| SUP-3155 | USD 946811.78 | USD 0.00 | USD 0.00 | USD 0.00 | USD 31018.75 | USD -7003.81 | USD 970826.72 |
 +
-+Each purchase quantity follows from that requirement: pieces rejected at incoming inspection are scrapped by Cadence with no credit and no replacement (clause 5.4 of every term sheet), so the buy has to carry the loss and is the requirement grossed up for that supplier's own incoming reject rate, rounded up to the next whole piece — SUP-1042 495,010, SUP-2318 492,200, SUP-3155 517,572, SUP-4077 497,951. SUP-2318 is bought in whole 100-piece boxes (clause 1: partial boxes are not tendered), so its quantity is rounded up to the next box, 492,200 pieces.
++Each purchase quantity follows from that requirement. A piece rejected at incoming inspection costs Cadence a piece only where Cadence scraps it: pieces returned to the seller on an authorisation are replaced at the seller's cost inside the contract year and are not invoiced again (clause 5.4 of every term sheet). The buy is therefore the requirement grossed up for the share of each supplier's inspected pieces that Cadence actually scrapped in 2025 - SUP-1042 0.391%, SUP-2318 1.100%, SUP-3155 4.792%, SUP-4077 2.266% - rounded up to the next whole piece: SUP-1042 494,936, SUP-2318 498,500, SUP-3155 517,815, SUP-4077 504,431. SUP-2318 is bought in whole 100-piece boxes (clause 1: partial boxes are not tendered), so its quantity is rounded up to the next box, 498,500 pieces.
 +
 +## Basis of Decision
 +
-+Four things separate these offers, and none of them is the headline price.
++Five things separate these offers, and none of them is the headline price.
 +
-+**Quoted price is the weakest signal.** Restated in US dollars per piece at the mandated planning rates, the recommended supplier SUP-1042 holds the *highest* quoted price of the four at USD 1.9450, against USD 1.8254 for the cheapest quote, SUP-4077. Note that SUP-2318 quotes per 100-piece box rather than per piece. Ranking on quoted price alone awards the contract to SUP-4077, and it is the wrong answer.
++**Quoted price is the weakest signal.** Restated in US dollars per piece at the mandated planning rates, the recommended supplier SUP-1042 holds the *highest* quoted price of the four at USD 1.9450, against USD 1.7905 for the cheapest quote, SUP-4077. Note that SUP-2318 quotes per 100-piece box rather than per piece. Ranking on quoted price alone awards the contract to SUP-4077, and it is the wrong answer.
 +
-+**Incoming quality decides the purchase quantity.** Rejected pieces are scrapped with no credit and no replacement under clause 5.4 of all four term sheets, so the buy quantity has to carry the loss. On 2025 incoming-inspection history the four suppliers run at SUP-1042 1.82%, SUP-2318 1.25%, SUP-3155 6.10%, SUP-4077 2.40%. That spread moves the purchase quantity by 25,372 pieces between the best and worst supplier and is the reason SUP-3155 cannot win on its low peso price.
++**What Cadence scraps decides the purchase quantity.** The four suppliers reject at SUP-1042 1.82%, SUP-2318 1.25%, SUP-3155 6.10%, SUP-4077 2.40% of inspected pieces, but they are not dispositioned alike: 2,572 of 3,276 of SUP-1042's rejected pieces went back to the seller on a return authorisation and were replaced free of charge, against 244 of 4,368 of SUP-4077's. On the pieces Cadence actually scrapped the four run at SUP-1042 0.391%, SUP-2318 1.100%, SUP-3155 4.792%, SUP-4077 2.266%, and that is what the buy has to carry. It moves the purchase quantity by 22,879 pieces between the best and worst supplier and is the reason SUP-3155 cannot win on its low peso price.
 +
-+**Two offers are origin-term, two are delivered.** SUP-2318 and SUP-4077 are FCA at the seller's works, so Cadence pays inbound freight, duty and brokerage on those lanes: USD 36276.40 and USD 35121.16 respectively across twelve monthly shipments. SUP-1042 and SUP-3155 are DDP and carry no separate freight.
++**Two offers are origin-term, two are delivered.** SUP-2318 and SUP-4077 are FCA at the seller's works, so Cadence pays inbound freight, duty and brokerage on those lanes: USD 36667.00 and USD 35497.00 respectively across twelve monthly shipments. SUP-1042 and SUP-3155 are DDP and carry no separate freight.
 +
-+**The Brackenridge volume terms do not pay out at our volume.** SUP-4077's 4.0% rebate is earned only at 520,000 pieces or more in the contract year (clause 4.2), and clause 4.1 commits Cadence to that same 520,000 pieces or a GBP 0.35 per piece shortfall charge. At our requirement the buy is 497,951 pieces — 22,049 short. So the rebate is worth nothing and the shortfall charge costs USD 9816.21. Its 1% 10 cash discount is not worth taking: at 9.0% cost of capital the standard Net 60 date is USD 2071.98 cheaper, and that is what is planned on. Rheinwerk's banded rebate is also worth less than it looks: clause 4.2 rates each band separately rather than re-rating the whole year at 3.0%, which is USD 11010.75 rather than USD 28197.15.
++**The Brackenridge volume terms do not pay out at our volume.** SUP-4077's 4.0% rebate is earned only at 520,000 pieces or more in the contract year (clause 4.2), and clause 4.1 commits Cadence to that same 520,000 pieces or a GBP 0.35 per piece shortfall charge. At our requirement the buy is 504,431 pieces - 15,569 short. So the rebate is worth nothing and the shortfall charge costs USD 6931.32. Its 1% 10 cash discount is not worth taking: at 9.0% cost of capital the standard Net 60 date is USD 2058.73 cheaper, and that is what is planned on. Rheinwerk's banded rebate is also worth less than it looks: clause 4.2 rates each band separately rather than re-rating the whole year at 3.0%, which is USD 11113.22 rather than USD 27909.02.
 +
-+Netting all of it, SUP-1042 wins on total FY2026 cost despite holding the highest quoted price. SUP-4077 loses on freight, the shortfall charge and the rebate it does not earn; SUP-2318 loses on freight and a smaller rebate than its headline rate; SUP-3155 loses on the 6.10% reject rate that forces the largest buy and the largest scrap bill.
++**Payment terms are worth more than the margin.** Valued against the Net 30 baseline at 9.0% cost of capital, SUP-1042's Net 90 is worth USD 14241.95 to Cadence and SUP-4077's Net 60 USD 6680.96. The gap between them is larger than the USD 2374.70 that separates the two offers.
++
++Netting all of it, SUP-1042 wins on total FY2026 cost despite holding the highest quoted price. SUP-4077 loses on freight, the shortfall charge and the rebate it does not earn, and finishes USD 2374.70 behind at USD 953203.26; SUP-2318 loses on USD 36667.00 of freight and a rebate worth USD 11113.22 rather than its headline rate, at USD 962729.48; SUP-3155 loses on the 4.792% of inspected pieces Cadence scrapped, which forces the largest buy at 517,815 pieces and a USD 31018.75 disposal bill, at USD 970826.72.
 +
 +## Data Quality and Exclusions
 +
-+- **Source inspections excluded from the reject rates.** The inspection log carries 33 `SOURCE` records alongside the `INCOMING` ones: pre-shipment inspections by Cadence supplier-quality engineers at the supplier's plant, 22 of them on SUP-1042 lots. Pieces rejected at source are replaced by the supplier before the lot ships, are never invoiced or received, and the same lot is inspected again on receipt. Only `INCOMING` records describe pieces Cadence pays for and scraps, so only they enter the reject rates. Pooling the two counts those lots twice and lifts SUP-1042's rate from 1.82% to about 3.72%, which hands the award to SUP-4077.
++- **Source inspections excluded from the reject rates.** The inspection log carries 33 `SOURCE` records alongside the `INCOMING` ones: pre-shipment inspections by Cadence supplier-quality engineers at the supplier's plant, 22 of them on SUP-1042 lots. Pieces failed at source are scrapped or reworked at the seller's cost, the seller makes the tendered quantity good, and the lot is inspected again on receipt. Only `INCOMING` records describe pieces Cadence paid for and dispositioned, so only they enter the reject rates. Pooling the two counts those lots twice and lifts SUP-1042's scrap loss rate from 0.391% to about 2.544%, which hands the award to SUP-4077.
 +
-+- **Post-cutover receipts resolved to their purchase orders.** Purchasing and receiving moved to the new ERP on 2025-07-01 (CHG-2025-0417). Receipts posted from that date carry the ERP's ten-digit purchase order number, which does not exist in the purchasing extract; `po_reference_2025.csv` carries both numbers. Joining receipts to purchase orders on the number as posted silently loses every lot received after go-live — 62 of 242 inspected lots — and those lots carry most of SUP-3155's rejects: without them its rate reads about 3.42% instead of 6.10% and the award flips to SUP-3155.
++- **Returned pieces excluded from the purchase gross-up.** 5,565 of the 21,434 pieces rejected at incoming inspection across the four candidates went back to the seller against a return authorisation and were replaced at the seller's cost inside the contract year, leaving 15,869 scrapped; the returned pieces are rejects but they are not a loss and they carry no disposal charge. They stay in `reject_rate_pct`, which the brief defines as rejected pieces over inspected pieces, and they are out of both the purchase quantity and the disposal charge. Grossing the buy up on every reject instead buys 7,203 pieces too many from SUP-1042 and hands the award to SUP-4077.
 +
-+- **Supplier identity.** Purchasing, quality and the supplier master each spell supplier names differently, and the inspection log's free-text `supplier` field is blank or null on a large minority of lots (the QMS interface stopped receiving it at the ERP go-live). Records were resolved to supplier codes through the `name_aliases` sheet of the supplier master, and inspection lots were attributed by `lot_id` through the goods receipt to the purchase order and then to the supplier code. Attributing on the free-text field instead drops the unattributed lots, and those lots are not randomly distributed: doing so understates SUP-3155's reject rate by roughly half and reverses the award.
++- **Post-cutover receipts resolved to their purchase orders.** Purchasing and receiving moved to the new ERP on 2025-07-01 (CHG-2025-0417). Receipts posted from that date carry the ERP's ten-digit purchase order number, which does not exist in the purchasing extract; `po_reference_2025.csv` carries both numbers. Joining receipts to purchase orders on the number as posted silently loses every lot received after go-live - 62 of 242 inspected lots - and those lots carry most of SUP-3155's rejects: without them its scrap loss rate reads about 1.497% instead of 4.792% and the award flips to SUP-3155.
++
++- **Supplier identity.** Purchasing, quality and the supplier master each spell supplier names differently, and the inspection log's free-text `supplier` field is blank or null on a large minority of lots (the QMS interface stopped receiving it at the ERP go-live). Records were resolved to supplier codes through the `name_aliases` sheet of the supplier master, and inspection lots were attributed by `lot_id` through the goods receipt to the purchase order and then to the supplier code. Attributing on the free-text field instead drops the unattributed lots, and those lots are not randomly distributed: doing so understates SUP-3155's loss rate by roughly two thirds and reverses the award.
 +
 +- **Double-logged inspection lots.** The inspection log contains repeated `INCOMING` records for the same `lot_id` under different `inspection_id` values. These are one physical lot each and were deduplicated on `lot_id` before any rate was computed.
 +
@@ -121,7 +125,7 @@ new file mode 100644
 +
 +- **Purchase orders.** Cancelled purchase orders have no receipts and no inspected lots and affect nothing. SP-22 purchase orders are a different part and are out of scope.
 +
-+- **Demand.** The planning-cube dump carries the superseded October S&OP cycle beside the frozen November one, and a `TOTAL` subtotal row for each part and cycle. Only the twelve monthly SP-40 rows of the November cycle were used. The October cycle totals 538,600 pieces; planning on it, or on both cycles together, pushes the buy past SUP-4077's 520,000-piece rebate threshold and flips the award.
++- **Demand.** The planning-cube dump carries the superseded October S&OP cycle beside the frozen November one, a `TOTAL` subtotal row for each part and cycle, and a rolling fifteen-month horizon that runs three months past the contract year. Only the twelve monthly SP-40 rows of the November cycle from April 2026 to March 2027 were used. The October cycle reads 537,300 pieces over the same window and the whole November horizon reads 623,600; either one, or the calendar-2026 reading of 512,000, pushes the buy past SUP-4077's 520,000-piece rebate threshold and flips the award.
 +
 +- **Exchange rates.** FY2026 figures use the mandated Treasury planning rates from the finance memo, not 2025 daily actuals. The 2025 daily export averages materially below the planning rates and using it would flatter the peso and sterling offers.
 +
@@ -129,9 +133,11 @@ new file mode 100644
 +
 +## Risks and Sensitivities
 +
-+- **The margin is 0.24% of contract value.** SUP-1042 beats SUP-4077 by USD 2322.53 on USD 959812.87 of annual spend. It is a real but not commanding lead, and it is sensitive to quality drift more than to anything else.
++- **The margin is 0.25% of contract value.** SUP-1042 beats SUP-4077 by USD 2374.70 on USD 950828.57 of annual spend. It is a real but not commanding lead, and it is sensitive to quality drift more than to anything else.
 +
-+- **Quality drift is the live risk.** SUP-1042's 2025 incoming reject rate is 1.82%. Holding everything else, its FY2026 cost matches the second-ranked offer once its reject rate reaches about 1.97%, and its clause 5 specification cap of 3.0% leaves contractual room to drift that far without breaching the agreement. Incoming quality, not price, is what this award rides on.
++- **Quality drift is the live risk.** SUP-1042's 2025 incoming reject rate is 1.82% and the share Cadence scrapped is 0.391%. Holding everything else, its FY2026 cost matches the second-ranked offer once the scrapped share reaches about 0.54%, and its clause 5 specification cap of 3.0% leaves contractual room to drift that far without breaching the agreement. Incoming quality, not price, is what this award rides on.
++
++- **The return route is a commercial arrangement, not a quality one.** SUP-1042's advantage rests on 2,572 of its 3,276 rejected pieces going back on a return authorisation rather than into the scrap cage, which is practical because the lane is a one-day domestic truck movement. If FY2026 returns are not authorised at the 2025 rate the buy quantity and the disposal bill both move against this recommendation, and the award is worth revisiting; an FY2026 return-authorisation commitment belongs in the agreement.
 +
 +- **The incoming rate depends on the source sort.** On the 22 SUP-1042 lots that were source-inspected in 2025, the engineer rejected 12.1% of pieces at the plant before they shipped. The low incoming rate is partly the product of that sorting; if source inspection is scaled back in FY2026, incoming quality could move toward the breakeven above. Keeping the source-inspection cadence is a condition of the award.
 +
@@ -139,5 +145,5 @@ new file mode 100644
 +
 +- **Currency.** The award is priced in US dollars and carries no FX exposure. The three foreign-currency offers do; the peso offer explicitly places all currency movement on Cadence. A 10% adverse move against the euro or sterling would widen this recommendation's lead, not narrow it.
 +
-+- **Volume.** If FY2026 SP-40 demand were to rise above roughly 520,000 good units, SUP-4077's rebate would begin to pay and its shortfall charge would disappear, which is the one demand scenario that changes the answer.
++- **Volume.** If FY2026 SP-40 demand were to rise above roughly 508,000 good units, SUP-4077's buy would cross 520,000 pieces, its rebate would begin to pay and its shortfall charge would disappear, which is the one demand scenario that changes the answer.
 +

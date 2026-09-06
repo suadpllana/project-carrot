@@ -55,9 +55,9 @@ intermediate values — do not feed a figure you have already rounded into a
 later calculation — and only the number written into the file is rounded, to
 the precision named above. `units_to_purchase` is the whole number of pieces
 that has to be bought for the FY2026 good-unit requirement still to be covered
-in full at that supplier's own observed reject performance: round it **up** to
-the next whole piece, or to the next whole pack where a supplier's offer only
-sells whole packs. `supplier_name` is the master's legal name in full, legal
+in full on that supplier's own 2025 incoming-inspection record: round it **up**
+to the next whole piece, or to the next whole pack where a supplier's offer
+only sells whole packs. `supplier_name` is the master's legal name in full, legal
 suffix and all; punctuation and spacing may follow your own house style.
 
 ### 2. `/workspace/output/defect_rates.csv`
@@ -93,7 +93,7 @@ You choose the elements and what to call them. Two rules bind them: give each
 element you charged its own row rather than folding it into another, and for
 each supplier the `amount_usd` values must add up to that supplier's
 `total_fy2026_cost_usd` in `supplier_costs.csv`, allowing only the rounding of
-theelements themselves — half a cent per row written. Do not write the total
+the elements themselves — half a cent per row written. Do not write the total
 itself as an element. Rows sorted by `supplier_code` ascending, then by
 `cost_element` ascending. The same numeric formatting rule as above applies.
 
@@ -118,7 +118,8 @@ Each section must contain **at least 30 words**, and must cover the following.
   US-dollar amount by which it beats the second-ranked supplier over FY2026.
 - `## Cost Comparison` — all four suppliers, each with its FY2026 total cost
   as a US-dollar amount; and the FY2026 good-unit requirement you worked to,
-  saying where in the demand data you took it from.
+  saying which part of the demand data you took it from and what period it
+  covers.
 - `## Basis of Decision` — what drives the ranking, and why each of the three
   suppliers you did not pick loses, naming each of them.
 - `## Data Quality and Exclusions` — which inspection records you counted

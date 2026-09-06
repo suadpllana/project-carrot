@@ -16,7 +16,6 @@ Needs openpyxl (the environment image preinstalls it).
 """
 from __future__ import annotations
 
-import collections
 import csv
 import importlib.util
 import json
@@ -68,19 +67,24 @@ def rederive():
             continue
         if r["lot_id"] not in seen or r["inspection_id"] < seen[r["lot_id"]]["inspection_id"]:
             seen[r["lot_id"]] = r
-    defects = {c: [0, 0, 0] for c in CANDIDATES}
+    defects = {c: [0, 0, 0, 0] for c in CANDIDATES}   # lots, inspected, rejected, scrapped
     for r in seen.values():
         c = lot_sup.get(r["lot_id"])
         if c in defects:
             defects[c][0] += 1
             defects[c][1] += r["qty_inspected"]
             defects[c][2] += r["qty_rejected"]
+            if r["disposition"] == "SCRAP":
+                defects[c][3] += r["qty_rejected"]
 
+    # the offers all run 1 April 2026 - 31 March 2027; the cube dump is a
+    # rolling fifteen-month horizon carrying two cycles and its own subtotals
     demand = rows_of(DATA / "demand" / "forecast_2026.csv")
     cycles = sorted({r["plan_cycle"] for r in demand})
     good = sum(int(r["good_units_required"]) for r in demand
                if r["part_number"] == "SP-40" and r["month"] != "TOTAL"
-               and r["plan_cycle"] == cycles[-1])
+               and r["plan_cycle"] == cycles[-1]
+               and "2026-04" <= r["month"] <= "2027-03")
 
     tariff = {r["lane_id"]: (float(r["usd_per_1000_pieces"]), float(r["brokerage_usd_per_shipment"]))
               for r in rows_of(DATA / "logistics" / "freight_tariff_2026.csv")}
@@ -88,15 +92,15 @@ def rederive():
     fx = {"USD": 1.0, "EUR": 1.0850, "GBP": 1.2720, "MXN": 0.0545}
     terms = {  # price, per-uom pieces, ccy, buyer freight lane, net days, cash discount
         "SUP-1042": (1.9450, 1, "USD", None, 90, None),
-        "SUP-2318": (176.00, 100, "EUR", "LANE-DE-01", 30, None),
-        "SUP-3155": (34.20, 1, "MXN", None, 60, None),
-        "SUP-4077": (1.4351, 1, "GBP", "LANE-UK-01", 60, (0.01, 10)),
+        "SUP-2318": (172.00, 100, "EUR", "LANE-DE-01", 30, None),
+        "SUP-3155": (33.55, 1, "MXN", None, 60, None),
+        "SUP-4077": (1.4076, 1, "GBP", "LANE-UK-01", 60, (0.01, 10)),
     }
     out = {}
     for c, (price, per, ccy, lane, days, disc) in terms.items():
-        rate = defects[c][2] / defects[c][1]
+        loss = defects[c][3] / defects[c][1]
         unit = price * fx[ccy] / per
-        units = math.ceil(good / (1 - rate))
+        units = math.ceil(good / (1 - loss))
         if per > 1:
             units = int(math.ceil(units / per) * per)
         material = units * unit
@@ -110,14 +114,15 @@ def rederive():
         if c == "SUP-4077" and units >= 520000:
             reb = material * 0.04
         short = (520000 - units) * 0.35 * fx["GBP"] if c == "SUP-4077" and units < 520000 else 0.0
-        scrap = (units - good) * 1.25
+        disposal = (units - good) * 1.25
         wc = material * 0.09 * (30 - days) / 365.0
         if disc:
             early = -material * disc[0] + material * (1 - disc[0]) * 0.09 * (30 - disc[1]) / 365.0
             wc = min(early, wc)
-        total = material + frt - reb + short + scrap + wc
-        out[c] = dict(rate=rate, lots=defects[c][0], units_inspected=defects[c][1],
-                      rejected=defects[c][2], unit_price=unit, units=units,
+        total = material + frt - reb + short + disposal + wc
+        out[c] = dict(rate=defects[c][2] / defects[c][1], loss=loss, lots=defects[c][0],
+                      units_inspected=defects[c][1], rejected=defects[c][2],
+                      scrapped=defects[c][3], unit_price=unit, units=units,
                       total=total, per_good=total / good)
     order = sorted(CANDIDATES, key=lambda c: out[c]["per_good"])
     return dict(good=good, cycles=cycles, n_source=n_source, rows=out, order=order)
@@ -146,6 +151,64 @@ def run_verifier(out_dir):
     return reward, passed
 
 
+ROUTES = [
+    ("grosses the buy up on every reject, not the scrapped share",
+     dict(build_kw=dict(loss="all"))),
+    ("pools the SOURCE inspections (dedupe keeps first record)",
+     dict(defect_kw=dict(points=None, keep="first"))),
+    ("pools the SOURCE inspections (dedupe keeps last record)",
+     dict(defect_kw=dict(points=None, keep="last"))),
+    ("pools the SOURCE inspections, no dedupe",
+     dict(defect_kw=dict(points=None, keep="none"))),
+    ("joins receipts without the ERP number reference",
+     dict(lot_kw=dict(use_crosswalk=False))),
+    ("attributes lots on the free-text supplier field",
+     dict(defect_kw=dict(attribute_by="field"))),
+    ("plans on calendar 2026 instead of the contract year",
+     dict(demand_kw=dict(window="calendar"))),
+    ("plans on the whole fifteen-month cube horizon",
+     dict(demand_kw=dict(window="horizon"))),
+    ("counts the TOTAL subtotal rows as well",
+     dict(demand_kw=dict(include_totals=True))),
+    ("plans on the superseded October S&OP cycle",
+     dict(demand_kw=dict(cycle="2025-10"))),
+    ("no yield gross-up", dict(build_kw=dict(gross_up=False))),
+    ("2025 average FX instead of planning rates", dict(build_kw=dict(fx="avg"))),
+    ("charges no inbound freight", dict(build_kw=dict(charge_freight=False))),
+    ("re-rates SUP-2318's whole year at 3.0%", dict(build_kw=dict(banded=False))),
+    ("treats SUP-4077's rebate as earned, no shortfall",
+     dict(build_kw=dict(threshold=False, shortfall=False))),
+    ("misses the shortfall charge alone (clause 4.1)",
+     dict(build_kw=dict(shortfall=False))),
+    ("ignores payment terms", dict(build_kw=dict(terms=False))),
+    ("ignores scrap disposal", dict(build_kw=dict(disposal=False))),
+    ("ignores SUP-2318's whole-box rule", dict(build_kw=dict(whole_packs=False))),
+    ("multiplies by the 4-dp rounded price", dict(build_kw=dict(rounded_price=True))),
+    ("reference solution", dict()),
+]
+
+# what a competent attempt that does every DOCUMENTED step but misses one or
+# two judgements actually scores - the profile the model sweep produces
+PROFILES = [
+    ("reads the log as one reject population (the default)",
+     dict(build_kw=dict(loss="all"))),
+    ("one reject population, pools SOURCE records",
+     dict(defect_kw=dict(points=None, keep="first"), build_kw=dict(loss="all"))),
+    ("one reject population, calendar-2026 window",
+     dict(build_kw=dict(loss="all"), demand_kw=dict(window="calendar"))),
+    ("pools SOURCE, joins receipts on po_id as it stands",
+     dict(defect_kw=dict(points=None, keep="first"), lot_kw=dict(use_crosswalk=False))),
+    ("free-text attribution, October plan cycle",
+     dict(defect_kw=dict(attribute_by="field"), demand_kw=dict(cycle="2025-10"))),
+    ("every judgement right, whole-box rule and rounded price missed",
+     dict(build_kw=dict(whole_packs=False, rounded_price=True))),
+    ("every judgement right, payment terms and disposal missed",
+     dict(build_kw=dict(terms=False, disposal=False))),
+    ("every judgement right, cube horizon not trimmed",
+     dict(demand_kw=dict(window="horizon"))),
+]
+
+
 def sweep(solve):
     weights = json.loads((TESTS / "test_weights.json").read_text())
     decision = {w["test_name"]: w["weight"] for w in weights if w.get("decision")}
@@ -156,13 +219,16 @@ def sweep(solve):
     xwalk = solve.load_crosswalk()
     lots = solve.load_lot_supplier(po, xwalk)
     freight = solve.load_freight()
-    stats = solve.source_statistics(lots, xwalk, alias, solve.load_demand())
+    stats = solve.source_statistics(lots, xwalk, alias, solve.load_demand(), freight)
 
     def variant(label, *, lot_kw=None, defect_kw=None, demand_kw=None, build_kw=None):
+        build_kw = dict(build_kw or {})
+        if build_kw.get("fx") == "avg":
+            build_kw["fx"] = solve.load_fx_2025_average()
         lot_map = solve.load_lot_supplier(po, xwalk, **(lot_kw or {}))
         defects = solve.load_defect_rates(lot_map, alias, **(defect_kw or {}))
         good = solve.load_demand(**(demand_kw or {}))
-        rows, order = solve.build(good, defects, freight, **(build_kw or {}))
+        rows, order = solve.build(good, defects, freight, **build_kw)
         out = Path(tempfile.mkdtemp(prefix="cadence-out-"))
         solve.OUT = out
         solve.write_outputs(names, defects, rows, order, good, freight, stats)
@@ -172,46 +238,6 @@ def sweep(solve):
         return dict(label=label, lands=order[0], reward=reward, dec=dec,
                     units=rows[order[0]]["units"], total=rows[order[0]]["total"])
 
-    routes = [
-        ("pools the SOURCE inspections (dedupe keeps first record)", dict(defect_kw=dict(points=None, keep="first"))),
-        ("pools the SOURCE inspections (dedupe keeps last record)", dict(defect_kw=dict(points=None, keep="last"))),
-        ("pools the SOURCE inspections, no dedupe", dict(defect_kw=dict(points=None, keep="none"))),
-        ("joins receipts without the ERP number reference", dict(lot_kw=dict(use_crosswalk=False))),
-        ("attributes lots on the free-text supplier field", dict(defect_kw=dict(attribute_by="field"))),
-        ("plans on the October S&OP cycle", dict(demand_kw=dict(cycle="2025-10"))),
-        ("sums both S&OP cycles", dict(demand_kw=dict(cycle="all"))),
-        ("counts the TOTAL subtotal rows", dict(demand_kw=dict(include_totals=True))),
-        ("no yield gross-up", dict(build_kw=dict(gross_up=False))),
-        ("2025 average FX instead of planning rates", dict(build_kw=dict(fx=solve.load_fx_2025_average()))),
-        ("charges no inbound freight", dict(build_kw=dict(charge_freight=False))),
-        ("re-rates SUP-2318's whole year at 3.0%", dict(build_kw=dict(banded=False))),
-        ("treats SUP-4077's rebate as earned, no shortfall", dict(build_kw=dict(threshold=False, shortfall=False))),
-        ("misses the shortfall charge alone (clause 4.1)", dict(build_kw=dict(shortfall=False))),
-        ("ignores payment terms", dict(build_kw=dict(terms=False))),
-        ("ignores scrap disposal", dict(build_kw=dict(scrap=False))),
-        ("ignores SUP-2318's whole-box rule", dict(build_kw=dict(whole_packs=False))),
-        ("multiplies by the 4-dp rounded price", dict(build_kw=dict(rounded_price=True))),
-        ("reference solution", dict()),
-    ]
-    # what a competent attempt that does every DOCUMENTED step but misses a
-    # judgement actually scores - the profile the model sweep produces
-    profiles = [
-        ("pools SOURCE records (the default if the log is read as one population)",
-         dict(defect_kw=dict(points=None, keep="first"))),
-        ("pools SOURCE, joins receipts on po_id as it stands",
-         dict(defect_kw=dict(points=None, keep="first"), lot_kw=dict(use_crosswalk=False))),
-        ("pools SOURCE, attributes on the free-text supplier field",
-         dict(defect_kw=dict(points=None, keep="first", attribute_by="field"))),
-        ("joins receipts on po_id as it stands, sums both plan cycles",
-         dict(lot_kw=dict(use_crosswalk=False), demand_kw=dict(cycle="all"))),
-        ("free-text attribution, October plan cycle",
-         dict(defect_kw=dict(attribute_by="field"), demand_kw=dict(cycle="2025-10"))),
-        ("every judgement right, whole-box rule and rounded price missed",
-         dict(build_kw=dict(whole_packs=False, rounded_price=True))),
-        ("every judgement right, payment terms and scrap missed",
-         dict(build_kw=dict(terms=False, scrap=False))),
-    ]
-
     def table(title, rows_):
         print("\n| %s | Lands on | Contract qty | Contract cost | Tests | Decision |" % title)
         print("| --- | --- | --- | --- | --- | --- |")
@@ -220,9 +246,9 @@ def sweep(solve):
                 r["label"], r["lands"], "{:,}".format(r["units"]), "{:,.2f}".format(r["total"]),
                 r["reward"], r["dec"], dec_total))
 
-    results = [variant(label, **kw) for label, kw in routes]
+    results = [variant(label, **kw) for label, kw in ROUTES]
     table("Single omission", results)
-    combos = [variant(label, **kw) for label, kw in profiles]
+    combos = [variant(label, **kw) for label, kw in PROFILES]
     table("Attempt profile", combos)
     return results + combos
 
@@ -231,22 +257,24 @@ def main():
     gt = rederive()
     print("independent re-derivation from environment/data/")
     print("  plan cycles in the dump : %s (frozen = %s)" % (", ".join(gt["cycles"]), gt["cycles"][-1]))
-    print("  FY2026 good units       : %d" % gt["good"])
+    print("  FY2026 good units       : %d  (contract year 2026-04 .. 2027-03)" % gt["good"])
     print("  SOURCE records excluded : %d" % gt["n_source"])
     for c in gt["order"]:
         r = gt["rows"][c]
-        print("  %s  lots=%d inspected=%d rejected=%d rate=%.3f%%  price=%.4f units=%d total=%.2f per_good=%.4f"
+        print("  %s  lots=%d inspected=%d rejected=%d (%.3f%%) scrapped=%d (%.3f%%)  "
+              "price=%.4f units=%d total=%.2f per_good=%.4f"
               % (c, r["lots"], r["units_inspected"], r["rejected"], 100 * r["rate"],
-                 r["unit_price"], r["units"], r["total"], r["per_good"]))
+                 r["scrapped"], 100 * r["loss"], r["unit_price"], r["units"],
+                 r["total"], r["per_good"]))
     print("  award                   : %s   margin over %s: USD %.2f"
           % (gt["order"][0], gt["order"][1],
              gt["rows"][gt["order"][1]]["total"] - gt["rows"][gt["order"][0]]["total"]))
 
     solve = load_solve()
-    ref = {}
     names, alias = solve.load_master()
     lots = solve.load_lot_supplier(solve.load_po_supplier(alias), solve.load_crosswalk())
-    rows, order = solve.build(solve.load_demand(), solve.load_defect_rates(lots, alias), solve.load_freight())
+    rows, order = solve.build(solve.load_demand(), solve.load_defect_rates(lots, alias),
+                              solve.load_freight())
     for c in CANDIDATES:
         assert rows[c]["units"] == gt["rows"][c]["units"], c
         assert abs(rows[c]["total"] - gt["rows"][c]["total"]) < 1e-6, c
@@ -260,9 +288,11 @@ def main():
     ref = [r for r in results if r["label"] == "reference solution"][0]
     assert ref["reward"] == 1.0, "reference does not score 1.0: %s" % ref
     flips = [r for r in results if r["lands"] != ref["lands"]]
-    print("\n%d of %d omissions land on a different supplier; worst non-flipping omission scores %.3f"
-          % (len(flips), len(results) - 1,
-             max(r["reward"] for r in results if r["lands"] == ref["lands"] and r["label"] != "reference solution")))
+    others = [r["reward"] for r in results
+              if r["lands"] == ref["lands"] and r["label"] != "reference solution"]
+    print("\n%d of %d omissions land on a different supplier; worst non-flipping "
+          "omission scores %.3f"
+          % (len(flips), len(results) - 1, max(others) if others else 0.0))
 
 
 if __name__ == "__main__":

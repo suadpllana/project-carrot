@@ -8,6 +8,10 @@
     "weight": 1
   },
   {
+    "test_name": "test_cost_buildup_file_exists",
+    "weight": 1
+  },
+  {
     "test_name": "test_recommendation_file_exists",
     "weight": 1
   },
@@ -28,10 +32,6 @@
     "weight": 1
   },
   {
-    "test_name": "test_supplier_names_match_master",
-    "weight": 2
-  },
-  {
     "test_name": "test_defect_rates_header_exact",
     "weight": 1
   },
@@ -44,42 +44,54 @@
     "weight": 1
   },
   {
+    "test_name": "test_cost_buildup_header_and_shape",
+    "weight": 1
+  },
+  {
+    "test_name": "test_supplier_names_match_master",
+    "weight": 2
+  },
+  {
+    "test_name": "test_cost_buildup_sums_to_the_filed_total",
+    "weight": 2
+  },
+  {
     "test_name": "test_memo_has_required_sections_in_order",
     "weight": 2
   },
   {
     "test_name": "test_award_is_correct_supplier",
-    "weight": 24,
+    "weight": 52,
     "decision": true
   },
   {
     "test_name": "test_award_quantity_is_correct",
-    "weight": 17,
+    "weight": 36,
     "decision": true
   },
   {
     "test_name": "test_award_total_is_correct",
-    "weight": 17,
-    "decision": true
-  },
-  {
-    "test_name": "test_recommendation_names_correct_supplier",
-    "weight": 6,
+    "weight": 36,
     "decision": true
   },
   {
     "test_name": "test_recommendation_states_quantity_total_and_margin",
-    "weight": 9,
+    "weight": 19,
+    "decision": true
+  },
+  {
+    "test_name": "test_recommendation_names_correct_supplier",
+    "weight": 13,
     "decision": true
   },
   {
     "test_name": "test_full_ranking_correct",
-    "weight": 4,
+    "weight": 9,
     "decision": true
   },
   {
     "test_name": "test_runner_up_identified",
-    "weight": 3,
+    "weight": 7,
     "decision": true
   },
   {
@@ -100,30 +112,50 @@
   },
   {
     "test_name": "test_units_to_purchase_correct",
-    "weight": 8
-  },
-  {
-    "test_name": "test_total_costs_correct",
     "weight": 10
   },
   {
+    "test_name": "test_total_costs_correct",
+    "weight": 20
+  },
+  {
     "test_name": "test_cost_per_good_unit_correct",
-    "weight": 6
+    "weight": 10
   },
   {
-    "test_name": "test_cost_per_good_unit_consistent_with_total",
-    "weight": 1
+    "test_name": "test_cost_per_good_unit_uses_the_contract_year_requirement",
+    "weight": 8
   },
   {
-    "test_name": "test_sup1042_rate_counts_incoming_inspections_only",
+    "test_name": "test_cost_buildup_material_correct",
+    "weight": 8
+  },
+  {
+    "test_name": "test_cost_buildup_freight_rebate_and_shortfall_correct",
+    "weight": 16
+  },
+  {
+    "test_name": "test_cost_buildup_charges_the_working_capital_value",
+    "weight": 14
+  },
+  {
+    "test_name": "test_reject_rates_count_incoming_inspections_only",
     "weight": 12
   },
   {
-    "test_name": "test_sup3155_rate_carries_every_attributed_lot",
+    "test_name": "test_reject_rates_carry_every_attributed_lot",
     "weight": 12
   },
   {
-    "test_name": "test_sup4077_volume_terms_applied_at_frozen_demand",
+    "test_name": "test_buy_quantity_carries_only_the_scrapped_share",
+    "weight": 14
+  },
+  {
+    "test_name": "test_disposal_charged_on_the_scrapped_pieces_only",
+    "weight": 12
+  },
+  {
+    "test_name": "test_sup4077_volume_terms_applied_at_contract_year_demand",
     "weight": 10
   },
   {
@@ -131,36 +163,28 @@
     "weight": 7
   },
   {
-    "test_name": "test_cost_buildup_file_exists",
-    "weight": 1
-  },
-  {
-    "test_name": "test_cost_buildup_header_and_shape",
-    "weight": 2
-  },
-  {
-    "test_name": "test_cost_buildup_sums_to_the_filed_total",
-    "weight": 2
-  },
-  {
-    "test_name": "test_cost_buildup_charges_the_policy_elements",
-    "weight": 18
-  },
-  {
     "test_name": "test_memo_states_good_unit_requirement",
-    "weight": 3
+    "weight": 4
   },
   {
-    "test_name": "test_memo_cost_comparison_covers_all_four",
-    "weight": 2
+    "test_name": "test_memo_states_the_contract_year_window",
+    "weight": 4
+  },
+  {
+    "test_name": "test_memo_reports_the_reject_disposition_split",
+    "weight": 5
   },
   {
     "test_name": "test_memo_flags_non_candidate_supplier",
-    "weight": 3
+    "weight": 2
+  },
+  {
+    "test_name": "test_memo_cost_comparison_covers_all_four",
+    "weight": 1
   },
   {
     "test_name": "test_memo_totals_agree_with_costs_file",
-    "weight": 2
+    "weight": 1
   },
   {
     "test_name": "test_penalty_award_is_split_or_deferred",

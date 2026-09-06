@@ -9,7 +9,8 @@ purchasing extract in particular carries several date styles.
 ## `contracts/SUP-*_terms.md`
 
 The four FY2026 offer term sheets, one per candidate supplier, as returned by
-the suppliers. Commercial terms are in the numbered clauses.
+the suppliers. The contract-year dates are in the header block; commercial and
+quality terms are in the numbered clauses.
 
 ## `demand/forecast_2026.csv`
 
@@ -18,7 +19,7 @@ cycle.
 
 | Column | Notes |
 | --- | --- |
-| `month` | `YYYY-MM`, or `TOTAL` on the cube's subtotal rows. |
+| `month` | `YYYY-MM`, over whatever horizon the cube was exported for, or `TOTAL` on the cube's subtotal rows. |
 | `part_number` | `SP-40` (stainless valve seat) or `SP-22` (brass orifice plate). |
 | `plan_cycle` | The S&OP cycle the row belongs to, `YYYY-MM`. |
 | `good_units_required` | Net demand in finished good pieces that must pass incoming inspection and reach the line. |
@@ -74,7 +75,7 @@ The QMS inspection log for SP-40, one JSON object per inspection record.
 | `qty_rejected` | Pieces found nonconforming at that inspection. |
 | `inspector` | `QA-nn` Aurora quality, `SQE-nn` supplier quality. |
 | `defect_codes` | Nonconformance codes recorded. |
-| `disposition` | Disposition of the rejected pieces as recorded by the inspector: `SCRAP` or `REPLACED_BY_SUPPLIER`. |
+| `disposition` | What was physically done with the pieces found nonconforming on that inspection, as recorded by the inspector: `SCRAP` (moved to the scrap cage and disposed of) or `REPLACED_BY_SUPPLIER` (packed back to the seller against a return authorisation and made good by the seller). One disposition per inspection record. |
 
 ## `master/supplier_master.xlsx`
 

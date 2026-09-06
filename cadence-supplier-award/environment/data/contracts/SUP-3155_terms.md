@@ -3,7 +3,7 @@
 **Buyer:** Cadence Instruments LLC, Aurora IL, USA
 **Seller:** Talleres Nortenos, S.A. de C.V. (supplier code SUP-3155)
 **Part:** SP-40 stainless valve seat
-**Contract year:** 1 January 2026 – 31 December 2026
+**Contract year:** 1 April 2026 – 31 March 2027 (Buyer's FY2026)
 **Status:** Offer received 2025-11-21. Signature pending award decision.
 
 ---
@@ -13,7 +13,7 @@
 | Item | Value |
 | --- | --- |
 | Unit of measure | Piece |
-| Price | MXN 34.20 per piece |
+| Price | MXN 33.55 per piece |
 | Price basis | Firm fixed for the full contract year |
 | Currency | MXN |
 
@@ -51,16 +51,20 @@ Buyer's right to reject a lot and to invoke the corrective-action provisions of
 clause 7; it is not a forecast, guarantee or estimate of the nonconforming rate
 Seller will achieve in any period.
 
-**Disposition of nonconforming pieces (clause 5.4).** Pieces rejected at
-Buyer's incoming inspection are scrapped by Buyer. Seller provides no credit,
-no replacement and no warranty allowance for rejected pieces. Buyer is
-responsible for ordering sufficient quantity to meet its net good-unit
-requirement.
+**Disposition of nonconforming pieces (clause 5.4).** Pieces found
+nonconforming at Buyer's incoming inspection are dispositioned by Buyer under
+its own receiving procedure. Where Buyer returns the pieces to Seller against a
+return authorisation, Seller bears the return freight and replaces the pieces
+at its own cost within the contract year; replacement pieces are not separately
+invoiced and are not counted as pieces purchased under this agreement. Where
+Buyer scraps the pieces, Seller issues no credit, no replacement and no
+warranty allowance, and the pieces are a loss to Buyer. Buyer is responsible
+for ordering sufficient quantity to meet its net good-unit requirement.
 
 ## 6. Term and termination
 
-Twelve months. Either party may terminate for convenience on 90 days' written
-notice.
+Twelve months from 1 April 2026. Either party may terminate for convenience on
+90 days' written notice.
 
 ## 7. Corrective action
 

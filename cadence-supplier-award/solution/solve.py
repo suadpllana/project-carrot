@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Reference solution: FY2026 SP-40 valve-seat sourcing award.
 
-Reads only the shipped inputs under /workspace/data and writes the three
-graded deliverables to /workspace/output. Deterministic: no network, no clock,
-no randomness.
+Reads only the shipped inputs under /workspace/data and writes the four graded
+deliverables to /workspace/output. Deterministic: no network, no clock, no
+randomness.
 
 Contract commercial terms are transcribed below from the four FY2026 term
 sheets in data/contracts/, with the governing clause cited on each line. Every
@@ -31,11 +31,17 @@ OUT = Path(os.environ.get("CADENCE_OUT", "/workspace/output"))
 CANDIDATES = ["SUP-1042", "SUP-2318", "SUP-3155", "SUP-4077"]
 ERP_GO_LIVE = "2025-07-01"                                        # it/CHG-2025-0417
 
+# --- data/contracts/SUP-*_terms.md, header block ---------------------------
+# Buyer's FY2026 contract year. The planning cube dump is a rolling fifteen
+# month horizon, so the requirement has to be cut out of it.
+CONTRACT_FROM = "2026-04"
+CONTRACT_TO = "2027-03"
+
 # --- data/finance/planning_assumptions_2026.md -----------------------------
 FX = {"USD": 1.0, "EUR": 1.0850, "GBP": 1.2720, "MXN": 0.0545}   # section 1
 WACC = 0.09                                                       # section 2
 BASELINE_DAYS = 30                                                # section 3
-SCRAP_USD_PER_REJECT = 1.25                                       # section 5
+DISPOSAL_USD_PER_SCRAPPED = 1.25                                  # section 5
 
 # --- data/contracts/SUP-*_terms.md -----------------------------------------
 # price / pieces_per_uom / currency        : clause 1
@@ -52,7 +58,7 @@ CONTRACTS = {
         rebate=None, min_volume=None, shortfall_per_piece=None,
         spec_limit_pct=3.0),
     "SUP-2318": dict(
-        currency="EUR", price=176.00, pieces_per_uom=100, whole_packs_only=True,
+        currency="EUR", price=172.00, pieces_per_uom=100, whole_packs_only=True,
         buyer_pays_freight=True, freight_lane="LANE-DE-01", shipments_per_year=12,
         payment_days=30, cash_discount=None,
         # clause 4.2: banded, each rate applies only to the volume inside its band
@@ -60,13 +66,13 @@ CONTRACTS = {
         min_volume=None, shortfall_per_piece=None,
         spec_limit_pct=2.0),
     "SUP-3155": dict(
-        currency="MXN", price=34.20, pieces_per_uom=1, whole_packs_only=False,
+        currency="MXN", price=33.55, pieces_per_uom=1, whole_packs_only=False,
         buyer_pays_freight=False, freight_lane=None, shipments_per_year=12,
         payment_days=60, cash_discount=None,
         rebate=None, min_volume=None, shortfall_per_piece=None,
         spec_limit_pct=7.0),
     "SUP-4077": dict(
-        currency="GBP", price=1.4351, pieces_per_uom=1, whole_packs_only=False,
+        currency="GBP", price=1.4076, pieces_per_uom=1, whole_packs_only=False,
         buyer_pays_freight=True, freight_lane="LANE-UK-01", shipments_per_year=12,
         payment_days=60, cash_discount=(0.01, 10),
         # clause 4.2: 4.0% on all pieces, earned ONLY at >= 520,000 pieces
@@ -141,11 +147,18 @@ def load_defect_rates(lot_supplier, alias=None, *, points=("INCOMING",),
     """Per-supplier incoming inspection, deduplicated on lot_id.
 
     Only INCOMING records describe pieces Cadence received, pays for and
-    scraps. SOURCE records are the supplier-quality engineer's pre-shipment
-    inspection of the same lot at the supplier's plant: pieces rejected there
-    are replaced before the lot ships and never reach Aurora, and the lot is
-    inspected again on receipt. Pooling the two counts the lot twice and
-    charges Cadence for pieces it never bought.
+    dispositions. SOURCE records are the supplier-quality engineer's
+    pre-shipment inspection of the same lot at the supplier's plant: pieces
+    failed there are scrapped or reworked at the seller's own cost, the seller
+    makes the tendered quantity good, and the lot is inspected again on
+    receipt. Pooling the two counts the lot twice and charges Cadence for
+    pieces it never bought.
+
+    Two reject populations come out of the incoming records, because a lot's
+    nonconforming pieces are dispositioned one of two ways (QP-07 section 4):
+    scrapped by Cadence, or returned to the seller and replaced free of charge
+    within the contract year (clause 5.4). Both are rejects. Only the scrapped
+    pieces are a loss the purchase quantity has to carry.
 
     The free-text `supplier` field in the inspection log is blank on a large
     minority of records and inconsistently spelled on the rest, so attribution
@@ -171,7 +184,7 @@ def load_defect_rates(lot_supplier, alias=None, *, points=("INCOMING",),
             elif keep == "last" and rec["inspection_id"] > seen[key]["inspection_id"]:
                 seen[key] = rec
 
-    agg = {c: dict(lots=0, units=0, rejected=0) for c in CANDIDATES}
+    agg = {c: dict(lots=0, units=0, rejected=0, scrapped=0) for c in CANDIDATES}
     for rec in seen.values():
         if attribute_by == "receipt":
             code = lot_supplier.get(rec["lot_id"])
@@ -182,18 +195,23 @@ def load_defect_rates(lot_supplier, alias=None, *, points=("INCOMING",),
         agg[code]["lots"] += 1
         agg[code]["units"] += int(rec["qty_inspected"])
         agg[code]["rejected"] += int(rec["qty_rejected"])
+        if rec.get("disposition") == "SCRAP":
+            agg[code]["scrapped"] += int(rec["qty_rejected"])
     for code, a in agg.items():
-        a["rate"] = a["rejected"] / a["units"]
+        a["returned"] = a["rejected"] - a["scrapped"]
+        a["rate"] = a["rejected"] / a["units"]              # what the file reports
+        a["loss_rate"] = a["scrapped"] / a["units"]         # what the buy carries
     return agg
 
 
-def load_demand(*, cycle="frozen", include_totals=False):
+def load_demand(*, cycle="frozen", window="contract", include_totals=False):
     """FY2026 good-unit requirement for SP-40.
 
     The planning-cube dump carries the last two S&OP cycles side by side, a
-    TOTAL subtotal row per part and cycle, and a second part. The plan of
-    record is the cycle the plan was frozen at, which is the latest one in
-    the dump; the earlier cycle, the subtotals and SP-22 are all out of scope.
+    TOTAL subtotal row per part and cycle, a second part, and a rolling
+    fifteen-month horizon. The plan of record is the cycle the plan was frozen
+    at, which is the latest one in the dump; the period is the contract year
+    the four offers cover.
     """
     rows = []
     with open(DATA / "demand" / "forecast_2026.csv", encoding="utf-8", newline="") as fh:
@@ -210,7 +228,22 @@ def load_demand(*, cycle="frozen", include_totals=False):
         wanted = set(cycles)
     else:
         wanted = {cycle}
-    total = sum(int(r["good_units_required"]) for r in rows if r["plan_cycle"].strip() in wanted)
+
+    spans = {"contract": (CONTRACT_FROM, CONTRACT_TO),
+             "calendar": ("2026-01", "2026-12"),
+             "horizon": ("0000-00", "9999-99")}
+    lo, hi = spans[window]
+
+    total = 0
+    for r in rows:
+        if r["plan_cycle"].strip() not in wanted:
+            continue
+        month = r["month"].strip().upper()
+        if month == "TOTAL":
+            total += int(r["good_units_required"])
+            continue
+        if lo <= month <= hi:
+            total += int(r["good_units_required"])
     return total
 
 
@@ -281,22 +314,24 @@ def payment_terms_usd(spec, material_usd):
     return min(early, standard)
 
 
-def cost_build(code, rate, good_units, freight, *, fx=None, gross_up=True,
-               whole_packs=True, charge_freight=True, banded=True,
-               threshold=True, shortfall=True, scrap=True, terms=True,
+def cost_build(code, defect, good_units, freight, *, fx=None, loss="scrap",
+               gross_up=True, whole_packs=True, charge_freight=True, banded=True,
+               threshold=True, shortfall=True, disposal=True, terms=True,
                rounded_price=False):
     spec = CONTRACTS[code]
     fx = fx or FX
     unit_price = spec["price"] * fx[spec["currency"]] / spec["pieces_per_uom"]
     price_used = round(unit_price, 4) if rounded_price else unit_price
 
-    # rejected pieces are scrapped with no supplier credit and no replacement
-    # (contracts, clause 5.4), so the purchase quantity has to carry the loss
+    # a rejected piece is a loss only where Cadence scraps it: pieces returned
+    # on an authorisation are replaced free of charge inside the contract year
+    # (contracts, clause 5.4), so the buy has to carry the scrapped share
+    rate = defect["loss_rate"] if loss == "scrap" else defect["rate"]
     units = math.ceil(good_units / (1 - rate)) if gross_up else good_units
     if whole_packs and spec["whole_packs_only"]:
         pack = spec["pieces_per_uom"]
         units = int(math.ceil(units / pack) * pack)
-    rejects = units - good_units
+    scrapped = units - good_units
 
     material = units * price_used
     frt = 0.0
@@ -308,22 +343,24 @@ def cost_build(code, rate, good_units, freight, *, fx=None, gross_up=True,
     if shortfall and spec["min_volume"] and units < spec["min_volume"]:
         short = ((spec["min_volume"] - units)
                  * spec["shortfall_per_piece"] * fx[spec["currency"]])
-    scrap_usd = rejects * SCRAP_USD_PER_REJECT if scrap else 0.0
+    disposal_usd = scrapped * DISPOSAL_USD_PER_SCRAPPED if disposal else 0.0
     terms_usd = payment_terms_usd(spec, material) if terms else 0.0
 
-    total = material + frt - reb + short + scrap_usd + terms_usd
-    return dict(unit_price=unit_price, units=units, rejects=rejects,
+    total = material + frt - reb + short + disposal_usd + terms_usd
+    return dict(unit_price=unit_price, units=units, scrapped=scrapped,
                 material=material, freight=frt, rebate=reb,
-                shortfall=short, scrap=scrap_usd, terms=terms_usd,
-                total=total, per_good=total / good_units, rate=rate)
+                shortfall=short, disposal=disposal_usd, terms=terms_usd,
+                total=total, per_good=total / good_units,
+                rate=defect["rate"], loss_rate=rate)
 
 
-def breakeven_reject_rate(code, target_total, good_units, freight):
-    """Reject rate at which `code` costs exactly `target_total`."""
+def breakeven_loss_rate(code, defect, target_total, good_units, freight):
+    """Scrap loss rate at which `code` costs exactly `target_total`."""
     lo, hi = 0.0, 0.30
     for _ in range(80):
         mid = (lo + hi) / 2.0
-        if cost_build(code, mid, good_units, freight)["total"] < target_total:
+        probe = dict(defect, loss_rate=mid)
+        if cost_build(code, probe, good_units, freight)["total"] < target_total:
             lo = mid
         else:
             hi = mid
@@ -333,7 +370,7 @@ def breakeven_reject_rate(code, target_total, good_units, freight):
 def build(good_units, defects, freight, **choices):
     rows = {}
     for code in CANDIDATES:
-        rows[code] = cost_build(code, defects[code]["rate"], good_units, freight, **choices)
+        rows[code] = cost_build(code, defects[code], good_units, freight, **choices)
     order = sorted(CANDIDATES, key=lambda c: rows[c]["per_good"])
     for i, code in enumerate(order, start=1):
         rows[code]["rank"] = i
@@ -367,7 +404,7 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
     # the decomposition to the attempt and binds only the sum.
     elements = [("material", "material"), ("inbound_freight", "freight"),
                 ("volume_rebate", "rebate"), ("shortfall_charge", "shortfall"),
-                ("scrap_disposal", "scrap"), ("payment_terms", "terms")]
+                ("scrap_disposal", "disposal"), ("payment_terms", "terms")]
     with open(OUT / "cost_buildup.csv", "w", encoding="utf-8", newline="") as fh:
         w = csv.writer(fh, lineterminator="\n")
         w.writerow(["supplier_code", "cost_element", "amount_usd"])
@@ -406,7 +443,7 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
     md.append("# FY2026 SP-40 valve-seat sourcing award\n")
     md.append("Prepared for the sourcing steering committee. All figures in US "
               "dollars at the mandated FY2026 planning rates, for the full "
-              "contract year 1 January – 31 December 2026.\n")
+              "contract year 1 April 2026 - 31 March 2027.\n")
 
     md.append("## Recommendation\n")
     md.append("Award the full FY2026 SP-40 volume to **{} ({})**, contracting "
@@ -424,10 +461,17 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
 
     md.append("## Cost Comparison\n")
     md.append("The FY2026 good-unit requirement worked to is **{:,} SP-40 "
-              "pieces** — the twelve monthly SP-40 rows of the frozen "
-              "November S&OP cycle. The cube dump's October cycle, its "
-              "`TOTAL` subtotal rows and all SP-22 rows are excluded; SP-22 "
-              "is the FM-90 orifice plate and is sourced separately.\n".format(good_units))
+              "pieces** - the twelve monthly SP-40 rows of the frozen November "
+              "S&OP cycle that fall in the contract year the four offers "
+              "cover, April 2026 through March 2027. The cube dump is a "
+              "rolling fifteen-month horizon, so its January-March 2026 rows "
+              "sit before the contract year and are excluded; so are the "
+              "superseded October cycle, the `TOTAL` subtotal rows and every "
+              "SP-22 row. Read as calendar 2026 the same cycle gives {:,} "
+              "pieces and read whole it gives {:,}; neither is the period this "
+              "contract covers.\n".format(
+                  good_units, source_stats["calendar_units"],
+                  source_stats["horizon_units"]))
     md.append("| supplier_code | supplier_name | quoted USD/piece | units to "
               "purchase | FY2026 total USD | USD per good unit | rank |")
     md.append("| --- | --- | --- | --- | --- | --- | --- |")
@@ -444,23 +488,28 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
         r = rows[code]
         md.append("| {} | USD {} | USD {} | USD {} | USD {} | USD {} | USD {} | USD {} |".format(
             code, money(r["material"]), money(r["freight"]),
-            money(-r["rebate"]), money(r["shortfall"]), money(r["scrap"]),
+            money(-r["rebate"]), money(r["shortfall"]), money(r["disposal"]),
             money(r["terms"]), money(r["total"])))
     md.append("")
-    md.append("Each purchase quantity follows from that requirement: pieces "
-              "rejected at incoming inspection are scrapped by Cadence with no "
-              "credit and no replacement (clause 5.4 of every term sheet), so "
-              "the buy has to carry the loss and is the requirement grossed up "
-              "for that supplier's own incoming reject rate, rounded up to the "
-              "next whole piece — {}. SUP-2318 is bought in whole 100-piece "
-              "boxes (clause 1: partial boxes are not tendered), so its "
-              "quantity is rounded up to the next box, {:,} pieces.\n".format(
+    md.append("Each purchase quantity follows from that requirement. A piece "
+              "rejected at incoming inspection costs Cadence a piece only "
+              "where Cadence scraps it: pieces returned to the seller on an "
+              "authorisation are replaced at the seller's cost inside the "
+              "contract year and are not invoiced again (clause 5.4 of every "
+              "term sheet). The buy is therefore the requirement grossed up "
+              "for the share of each supplier's inspected pieces that Cadence "
+              "actually scrapped in 2025 - {} - rounded up to the next whole "
+              "piece: {}. SUP-2318 is bought in whole 100-piece boxes (clause "
+              "1: partial boxes are not tendered), so its quantity is rounded "
+              "up to the next box, {:,} pieces.\n".format(
+                  ", ".join("{} {:.3f}%".format(c, 100 * rows[c]["loss_rate"])
+                            for c in sorted(CANDIDATES)),
                   ", ".join("{} {:,}".format(c, rows[c]["units"])
                             for c in sorted(CANDIDATES)),
                   rows["SUP-2318"]["units"]))
 
     md.append("## Basis of Decision\n")
-    md.append("Four things separate these offers, and none of them is the "
+    md.append("Five things separate these offers, and none of them is the "
               "headline price.\n")
     cheapest = min(CANDIDATES, key=lambda c: rows[c]["unit_price"])
     md.append("**Quoted price is the weakest signal.** Restated in US dollars "
@@ -472,18 +521,25 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
               "{}, and it is the wrong answer.\n".format(
                   win, rows[win]["unit_price"], rows[cheapest]["unit_price"],
                   cheapest, cheapest))
-    md.append("**Incoming quality decides the purchase quantity.** Rejected "
-              "pieces are scrapped with no credit and no replacement under "
-              "clause 5.4 of all four term sheets, so the buy quantity has to "
-              "carry the loss. On 2025 incoming-inspection history the four "
-              "suppliers run at {}. That spread moves the purchase quantity "
-              "by {:,} pieces between the best and worst supplier and is the "
-              "reason {} cannot win on its low peso price.\n".format(
+    md.append("**What Cadence scraps decides the purchase quantity.** The four "
+              "suppliers reject at {} of inspected pieces, but they are not "
+              "dispositioned alike: {} of SUP-1042's rejected pieces went back "
+              "to the seller on a return authorisation and were replaced free "
+              "of charge, against {} of SUP-4077's. On the pieces Cadence "
+              "actually scrapped the four run at {}, and that is what the buy "
+              "has to carry. It moves the purchase quantity by {:,} pieces "
+              "between the best and worst supplier and is the reason SUP-3155 "
+              "cannot win on its low peso price.\n".format(
                   ", ".join("{} {:.2f}%".format(c, 100 * rows[c]["rate"])
                             for c in sorted(CANDIDATES)),
+                  "{:,} of {:,}".format(defects["SUP-1042"]["returned"],
+                                        defects["SUP-1042"]["rejected"]),
+                  "{:,} of {:,}".format(defects["SUP-4077"]["returned"],
+                                        defects["SUP-4077"]["rejected"]),
+                  ", ".join("{} {:.3f}%".format(c, 100 * rows[c]["loss_rate"])
+                            for c in sorted(CANDIDATES)),
                   max(rows[c]["units"] for c in CANDIDATES)
-                  - min(rows[c]["units"] for c in CANDIDATES),
-                  "SUP-3155"))
+                  - min(rows[c]["units"] for c in CANDIDATES)))
     md.append("**Two offers are origin-term, two are delivered.** SUP-2318 and "
               "SUP-4077 are FCA at the seller's works, so Cadence pays inbound "
               "freight, duty and brokerage on those lanes: USD {} and USD {} "
@@ -496,7 +552,7 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
               "pieces or more in the contract year (clause 4.2), and clause "
               "4.1 commits Cadence to that same 520,000 pieces or a GBP 0.35 "
               "per piece shortfall charge. At our requirement the buy is "
-              "{:,} pieces — {:,} short. So the rebate is worth nothing and "
+              "{:,} pieces - {:,} short. So the rebate is worth nothing and "
               "the shortfall charge costs USD {}. Its 1% 10 cash discount is "
               "not worth taking: at 9.0% cost of capital the standard Net 60 "
               "date is USD {} cheaper, and that is what is planned on. "
@@ -510,29 +566,60 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
                   money(discount_penalty),
                   money(rows["SUP-2318"]["rebate"]),
                   money(rows["SUP-2318"]["material"] * 0.03)))
+    md.append("**Payment terms are worth more than the margin.** Valued "
+              "against the Net 30 baseline at 9.0% cost of capital, SUP-1042's "
+              "Net 90 is worth USD {} to Cadence and SUP-4077's Net 60 USD {}. "
+              "The gap between them is larger than the USD {} that separates "
+              "the two offers.\n".format(
+                  money(-rows["SUP-1042"]["terms"]),
+                  money(-rows["SUP-4077"]["terms"]), money(margin)))
     md.append("Netting all of it, {} wins on total FY2026 cost despite holding "
               "the highest quoted price. SUP-4077 loses on freight, the "
-              "shortfall charge and the rebate it does not earn; SUP-2318 "
-              "loses on freight and a smaller rebate than its headline rate; "
-              "SUP-3155 loses on the {:.2f}% reject rate that forces the "
-              "largest buy and the largest scrap bill.\n".format(
-                  win, 100 * rows["SUP-3155"]["rate"]))
+              "shortfall charge and the rebate it does not earn, and finishes "
+              "USD {} behind at USD {}; SUP-2318 loses on USD {} of freight "
+              "and a rebate worth USD {} rather than its headline rate, at USD "
+              "{}; SUP-3155 loses on the {:.3f}% of inspected pieces Cadence "
+              "scrapped, which forces the largest buy at {:,} pieces and a USD "
+              "{} disposal bill, at USD {}.\n".format(
+                  win, money(margin), money(rows["SUP-4077"]["total"]),
+                  money(rows["SUP-2318"]["freight"]),
+                  money(rows["SUP-2318"]["rebate"]),
+                  money(rows["SUP-2318"]["total"]),
+                  100 * rows["SUP-3155"]["loss_rate"], rows["SUP-3155"]["units"],
+                  money(rows["SUP-3155"]["disposal"]),
+                  money(rows["SUP-3155"]["total"])))
 
     md.append("## Data Quality and Exclusions\n")
     md.append("- **Source inspections excluded from the reject rates.** The "
               "inspection log carries {} `SOURCE` records alongside the "
               "`INCOMING` ones: pre-shipment inspections by Cadence "
               "supplier-quality engineers at the supplier's plant, {} of them "
-              "on SUP-1042 lots. Pieces rejected at source are replaced by "
-              "the supplier before the lot ships, are never invoiced or "
-              "received, and the same lot is inspected again on receipt. "
-              "Only `INCOMING` records describe pieces Cadence pays for and "
-              "scraps, so only they enter the reject rates. Pooling the two "
-              "counts those lots twice and lifts SUP-1042's rate from "
-              "{:.2f}% to about {:.2f}%, which hands the award to "
+              "on SUP-1042 lots. Pieces failed at source are scrapped or "
+              "reworked at the seller's cost, the seller makes the tendered "
+              "quantity good, and the lot is inspected again on receipt. Only "
+              "`INCOMING` records describe pieces Cadence paid for and "
+              "dispositioned, so only they enter the reject rates. Pooling the "
+              "two counts those lots twice and lifts SUP-1042's scrap loss "
+              "rate from {:.3f}% to about {:.3f}%, which hands the award to "
               "SUP-4077.\n".format(
                   source_stats["rows"], source_stats["rows_1042"],
-                  100 * rows["SUP-1042"]["rate"], 100 * source_stats["pooled_rate_1042"]))
+                  100 * rows["SUP-1042"]["loss_rate"],
+                  100 * source_stats["pooled_loss_1042"]))
+    md.append("- **Returned pieces excluded from the purchase gross-up.** "
+              "{:,} of the {:,} pieces rejected at incoming inspection across "
+              "the four candidates went back to the seller against a return "
+              "authorisation and were replaced at the seller's cost inside the "
+              "contract year, leaving {:,} scrapped; the returned pieces are "
+              "rejects but they are not a loss and they carry no disposal "
+              "charge. They stay in `reject_rate_pct`, "
+              "which the brief defines as rejected pieces over inspected "
+              "pieces, and they are out of both the purchase quantity and the "
+              "disposal charge. Grossing the buy up on every reject instead "
+              "buys {:,} pieces too many from SUP-1042 and hands the award to "
+              "SUP-4077.\n".format(
+                  source_stats["returned_total"], source_stats["rejected_total"],
+                  source_stats["rejected_total"] - source_stats["returned_total"],
+                  source_stats["overbuy_1042"]))
     md.append("- **Post-cutover receipts resolved to their purchase orders.** "
               "Purchasing and receiving moved to the new ERP on {} "
               "(CHG-2025-0417). Receipts posted from that date carry the "
@@ -540,12 +627,13 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
               "in the purchasing extract; `po_reference_2025.csv` "
               "carries both numbers. Joining receipts to purchase "
               "orders on the number as posted silently loses every lot received "
-              "after go-live — {} of {} inspected lots — and those lots carry "
-              "most of SUP-3155's rejects: without them its rate reads about "
-              "{:.2f}% instead of {:.2f}% and the award flips to "
+              "after go-live - {} of {} inspected lots - and those lots carry "
+              "most of SUP-3155's rejects: without them its scrap loss rate "
+              "reads about {:.3f}% instead of {:.3f}% and the award flips to "
               "SUP-3155.\n".format(
                   ERP_GO_LIVE, source_stats["post_lots"], source_stats["lots"],
-                  100 * source_stats["pre_rate_3155"], 100 * rows["SUP-3155"]["rate"]))
+                  100 * source_stats["pre_loss_3155"],
+                  100 * rows["SUP-3155"]["loss_rate"]))
     md.append("- **Supplier identity.** Purchasing, quality and the supplier "
               "master each spell supplier names differently, and the "
               "inspection log's free-text `supplier` field is blank or null "
@@ -556,8 +644,8 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
               "through the goods receipt to the purchase order and then to "
               "the supplier code. Attributing on the free-text field instead "
               "drops the unattributed lots, and those lots are not randomly "
-              "distributed: doing so understates SUP-3155's reject rate by "
-              "roughly half and reverses the award.\n")
+              "distributed: doing so understates SUP-3155's loss rate by "
+              "roughly two thirds and reverses the award.\n")
     md.append("- **Double-logged inspection lots.** The inspection log "
               "contains repeated `INCOMING` records for the same `lot_id` "
               "under different `inspection_id` values. These are one "
@@ -572,12 +660,17 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
               "receipts and no inspected lots and affect nothing. SP-22 "
               "purchase orders are a different part and are out of scope.\n")
     md.append("- **Demand.** The planning-cube dump carries the superseded "
-              "October S&OP cycle beside the frozen November one, and a "
-              "`TOTAL` subtotal row for each part and cycle. Only the twelve "
-              "monthly SP-40 rows of the November cycle were used. The "
-              "October cycle totals {:,} pieces; planning on it, or on both "
-              "cycles together, pushes the buy past SUP-4077's 520,000-piece "
-              "rebate threshold and flips the award.\n".format(source_stats["oct_total"]))
+              "October S&OP cycle beside the frozen November one, a `TOTAL` "
+              "subtotal row for each part and cycle, and a rolling "
+              "fifteen-month horizon that runs three months past the contract "
+              "year. Only the twelve monthly SP-40 rows of the November cycle "
+              "from April 2026 to March 2027 were used. The October cycle "
+              "reads {:,} pieces over the same window and the whole November "
+              "horizon reads {:,}; either one, or the calendar-2026 reading of "
+              "{:,}, pushes the buy past SUP-4077's 520,000-piece rebate "
+              "threshold and flips the award.\n".format(
+                  source_stats["oct_units"], source_stats["horizon_units"],
+                  source_stats["calendar_units"]))
     md.append("- **Exchange rates.** FY2026 figures use the mandated Treasury "
               "planning rates from the finance memo, not 2025 daily actuals. "
               "The 2025 daily export averages materially below the planning "
@@ -594,16 +687,27 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
               "to anything else.\n".format(
                   100.0 * margin / w["total"], win, second, money(margin),
                   money(w["total"])))
-    breakeven = breakeven_reject_rate(win, s["total"], good_units, freight)
+    breakeven = breakeven_loss_rate(win, defects[win], s["total"], good_units, freight)
     md.append("- **Quality drift is the live risk.** {}'s 2025 incoming reject "
-              "rate is {:.2f}%. Holding everything else, its FY2026 cost "
-              "matches the second-ranked offer once its reject rate reaches "
-              "about {:.2f}%, and its clause 5 specification cap of {:.1f}% "
-              "leaves contractual room to drift that far without breaching "
-              "the agreement. Incoming quality, not price, is what this "
-              "award rides on.\n".format(
-                  win, 100 * rows[win]["rate"], 100 * breakeven,
-                  CONTRACTS[win]["spec_limit_pct"]))
+              "rate is {:.2f}% and the share Cadence scrapped is {:.3f}%. "
+              "Holding everything else, its FY2026 cost matches the "
+              "second-ranked offer once the scrapped share reaches about "
+              "{:.2f}%, and its clause 5 specification cap of {:.1f}% leaves "
+              "contractual room to drift that far without breaching the "
+              "agreement. Incoming quality, not price, is what this award "
+              "rides on.\n".format(
+                  win, 100 * rows[win]["rate"], 100 * rows[win]["loss_rate"],
+                  100 * breakeven, CONTRACTS[win]["spec_limit_pct"]))
+    md.append("- **The return route is a commercial arrangement, not a "
+              "quality one.** {}'s advantage rests on {:,} of its {:,} "
+              "rejected pieces going back on a return authorisation rather "
+              "than into the scrap cage, which is practical because the lane "
+              "is a one-day domestic truck movement. If FY2026 returns are "
+              "not authorised at the 2025 rate the buy quantity and the "
+              "disposal bill both move against this recommendation, and the "
+              "award is worth revisiting; an FY2026 return-authorisation "
+              "commitment belongs in the agreement.\n".format(
+                  win, defects[win]["returned"], defects[win]["rejected"]))
     md.append("- **The incoming rate depends on the source sort.** On the {} "
               "SUP-1042 lots that were source-inspected in 2025, the engineer "
               "rejected {:.1f}% of pieces at the plant before they shipped. "
@@ -623,15 +727,16 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
               "10% adverse move against the euro or sterling would widen this "
               "recommendation's lead, not narrow it.\n")
     md.append("- **Volume.** If FY2026 SP-40 demand were to rise above roughly "
-              "520,000 good units, SUP-4077's rebate would begin to pay and "
-              "its shortfall charge would disappear, which is the one demand "
-              "scenario that changes the answer.\n")
+              "508,000 good units, SUP-4077's buy would cross 520,000 pieces, "
+              "its rebate would begin to pay and its shortfall charge would "
+              "disappear, which is the one demand scenario that changes the "
+              "answer.\n")
 
     with open(OUT / "recommendation.md", "w", encoding="utf-8", newline="\n") as fh:
         fh.write("\n".join(md) + "\n")
 
 
-def source_statistics(lot_supplier, crosswalk, alias, good_units):
+def source_statistics(lot_supplier, crosswalk, alias, good_units, freight):
     """Figures the memo quotes about the excluded populations."""
     rows = rows_1042 = src_units = src_rej = 0
     with open(DATA / "quality" / "incoming_inspection_2025.jsonl", encoding="utf-8") as fh:
@@ -649,13 +754,20 @@ def source_statistics(lot_supplier, crosswalk, alias, good_units):
     correct = load_defect_rates(lot_supplier, alias)
     no_xwalk = load_defect_rates(load_lot_supplier(load_po_supplier(alias), crosswalk,
                                                    use_crosswalk=False), alias)
+    over = (math.ceil(good_units / (1 - correct["SUP-1042"]["rate"]))
+            - math.ceil(good_units / (1 - correct["SUP-1042"]["loss_rate"])))
     return dict(rows=rows, rows_1042=rows_1042,
                 source_rate_1042=src_rej / src_units,
-                pooled_rate_1042=pooled["SUP-1042"]["rate"],
+                pooled_loss_1042=pooled["SUP-1042"]["loss_rate"],
                 lots=sum(correct[c]["lots"] for c in CANDIDATES),
                 post_lots=sum(correct[c]["lots"] - no_xwalk[c]["lots"] for c in CANDIDATES),
-                pre_rate_3155=no_xwalk["SUP-3155"]["rate"],
-                oct_total=load_demand(cycle="2025-10"))
+                pre_loss_3155=no_xwalk["SUP-3155"]["loss_rate"],
+                rejected_total=sum(correct[c]["rejected"] for c in CANDIDATES),
+                returned_total=sum(correct[c]["returned"] for c in CANDIDATES),
+                overbuy_1042=over,
+                calendar_units=load_demand(window="calendar"),
+                horizon_units=load_demand(window="horizon"),
+                oct_units=load_demand(cycle="2025-10"))
 
 
 def main():
@@ -667,14 +779,16 @@ def main():
     good_units = load_demand()
     freight = load_freight()
     rows, order = build(good_units, defects, freight)
-    stats = source_statistics(lot_supplier, crosswalk, alias, good_units)
+    stats = source_statistics(lot_supplier, crosswalk, alias, good_units, freight)
     write_outputs(names, defects, rows, order, good_units, freight, stats)
 
     print("FY2026 SP-40 good units required:", good_units)
     for code in order:
         r = rows[code]
-        print("  {} rank={} units={} total={:.2f} per_good={:.4f} reject={:.3f}%".format(
-            code, r["rank"], r["units"], r["total"], r["per_good"], 100 * r["rate"]))
+        print("  {} rank={} units={} total={:.2f} per_good={:.4f} reject={:.3f}% "
+              "scrapped={:.3f}%".format(
+                  code, r["rank"], r["units"], r["total"], r["per_good"],
+                  100 * r["rate"], 100 * r["loss_rate"]))
     print("award:", order[0])
 
 

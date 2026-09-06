@@ -21,12 +21,14 @@ purchase-order numbers.
 
 **Every shipped document describes its system and decides nothing.** The data
 dictionary defines `inspection_point` and `disposition` without saying which
-records belong in a reject rate; the change record states that receipts carry
-the posting system's purchase-order number without saying that a join on it
-fails; the planning note says the plan was frozen at the November cycle without
-saying that the dump also carries October. What to do with any of it is the
-attempt's judgement. Wording that instructs rather than describes is treated as
-a defect in this task: it is what put revisions 2 and 3 out of band.
+records belong in a reject rate or which rejected pieces are a loss; the
+change record states that receipts carry the posting system's purchase-order
+number without saying that a join on it fails; the planning note says the plan
+was frozen at the November cycle and that the dump is the cube's whole rolling
+fifteen-month horizon, without saying which months the contract covers. What to
+do with any of it is the attempt's judgement. Wording that instructs rather
+than describes is treated as a defect in this task: it is what put revisions 2
+and 3 out of band.
 
 **Deliverables**, all written to `/workspace/output/`:
 
@@ -52,14 +54,56 @@ author-generated; the generator is retained under `solution/_provenance/`.
 
 # Complexity justification
 
-Ten reasoning challenges are planted in the data. **Nine of them decide the
-recommendation on their own**: get any one wrong and the award goes to a
-different supplier. None is asked for by the prompt, and none is a checklist
-item a document hands over. The three hardest are of the kind a careful attempt
-does not find by checking rows against a reference table — a population
-question and two silent joins — and are described first.
+**Six independent judgements gate the answer, and each of the six lands on a
+different supplier when it is missed.** None is asked for by the prompt, and
+none is a checklist item a document hands over. Two of them — which rejected
+pieces are actually a loss, and which months of the cube the contract covers —
+are new in revision 6 and are the two the previous model sweep walked straight
+past.
 
-**0a. CRUX — the inspection log is two populations.**
+The single most important property of the design is that **the right answer is
+invisible from any uncorrected view**. SUP-1042 is not a near miss on a
+careless run: on the default reading of the inspection log it is third of four,
+and with the source inspections pooled it is fourth. There is no
+wrong-but-close ranking that a second look corrects.
+
+**0a. CRUX — a rejected piece is not always a loss.**
+*Planted:* every nonconforming piece found at incoming inspection carries a
+`disposition` — `SCRAP`, or `REPLACED_BY_SUPPLIER` where the lot went back to
+the seller against a return authorisation. The four suppliers do not
+disposition alike, because returning is a commercial question rather than a
+quality one: SUP-1042 ships from Cleveland on a one-day domestic truck lane
+and returned 2,572 of its 3,276 rejected pieces, where SUP-4077 ships ocean
+from Sheffield and returned 244 of 4,368. Clause 5.4 of all four term sheets
+— identically worded, so no supplier is advantaged by a hidden term — says a
+returned piece is replaced at the seller's cost inside the contract year and
+is not invoiced again, and that a scrapped piece is a loss with no credit.
+QP-07 section 4 describes the two dispositions and stops there. Section 5 of
+the finance policy charges disposal at USD 1.25 **per scrapped piece** and
+says returned pieces carry no disposal charge.
+*Correct attempt:* files every reject in `reject_rate_pct`, as the prompt
+defines it, and grosses the purchase quantity up on the scrapped share alone —
+0.391% for SUP-1042 against 1.820% rejected.
+*Careless attempt:* grosses up on every reject, buys 7,203 pieces too many
+from SUP-1042, charges it USD 8,843 of disposal it will never incur, and
+awards SUP-4077. Measured 0.241 with 0 of 172 test-side decision points.
+
+**0b. CRUX — the cube horizon is not the contract year.**
+*Planted:* the offers run **1 April 2026 – 31 March 2027** (term-sheet header
+block; section 6 of the finance policy states Cadence's fiscal year on the same
+dates). `demand/forecast_2026.csv` is a raw cube dump on the cube's rolling
+**fifteen-month** horizon, 2026-01 through 2027-03, carrying two S&OP cycles
+and a `TOTAL` subtotal row per part and cycle. The three readings of the frozen
+November cycle are all different numbers and only one of them is the contract
+year: 493,000 pieces over April–March, 512,000 read as calendar 2026, 623,600
+read whole. Nothing filters it and nothing errors.
+*Correct attempt:* 493,000 good units.
+*Careless attempt:* any other reading pushes SUP-4077's buy over its
+520,000-piece rebate threshold, so a 4.0% rebate it has not earned appears and
+the clause 4.1 shortfall charge disappears — a USD 43,000 swing that hands it
+the award. Measured 0.210 on all four wrong readings, 0 of 172 decision points.
+
+**0c. CRUX — the inspection log is two populations.**
 *Planted:* `quality/incoming_inspection_2025.jsonl` carries 33 `SOURCE`
 records among the 260 `INCOMING` ones: pre-shipment inspections performed by a
 Cadence supplier-quality engineer at the supplier's plant, 22 of them on
@@ -67,142 +111,102 @@ SUP-1042 lots at a 12.1% reject rate (SUP-2318 and SUP-3155 have a few as
 well, so it is not a one-supplier gimmick). Every record is an SP-40 inspection
 of a real lot, so reading the log as one population is the natural default.
 The mechanics are recoverable and never assembled for the attempt: QP-07
-section 5 says pieces rejected at a supplier's plant are held back and replaced
-before the shipment is tendered and that the lot is inspected again at Aurora,
-section 4 says pieces rejected at receiving are scrapped by Cadence, and clause
-5.4 of every term sheet says the buyer carries that loss. The conclusion — that
-a purchase quantity is grossed up for what is lost at receiving, not for what
-never shipped — is the attempt's to draw. Every source record shares its
-`lot_id` with the incoming record of the same lot, and half were keyed before
-that record and half after, so neither "keep the first record per lot" nor
-"keep the last" gets it right.
-*Correct attempt:* restricts the reject rates to `INCOMING` records, which
-are the pieces Cadence pays for and scraps: SUP-1042 at 1.820%.
-*Careless attempt:* pools the two and reads SUP-1042 at 3.68% (dedupe either
-way) or 4.55% (no dedupe), buys 9,500–14,000 more pieces from it, and awards
-SUP-4077. Measured 0.159–0.222 with 0 of 93 test-side decision points.
+section 5 says pieces failed at the seller's plant are scrapped or reworked
+there at the seller's cost, that the seller makes the tendered quantity good
+before the shipment is released, and that the lot is inspected again at Aurora.
+Every source record shares its `lot_id` with the incoming record of the same
+lot, and half were keyed before that record and half after, so neither "keep
+the first record per lot" nor "keep the last" gets it right.
+*Correct attempt:* restricts the rates to `INCOMING` records — the pieces
+Cadence paid for and dispositioned.
+*Careless attempt:* pools the two, lifts the share of SUP-1042's inspected
+pieces that Cadence scrapped from 0.391% to 2.54%, and awards SUP-4077.
+Measured 0.127–0.166 with 0 of 172 decision points.
 
-**0b. CRUX — the ERP cutover breaks the receipt join without an error.**
+**0d. CRUX — the ERP cutover breaks the receipt join without an error.**
 *Planted:* purchasing and receiving moved to a new ERP on 2025-07-01
 (`it/CHG-2025-0417_erp_cutover.md`). The 62 goods receipts posted from that
 date carry the ERP's ten-digit purchase order number; the purchasing extract
 carries the reporting mart's `PO-45xxx` numbers throughout. Both series appear
 on `purchasing/po_reference_2025.csv`, which is an ordinary reference extract
 (buyer, cost centre, commodity code, terms text) and is not labelled as a fix
-for anything. A join of receipts to purchase orders on
-`po_id` matches every pre-cutover receipt and silently matches nothing after
-it, so the lots received after go-live drop out of the reject rates with no
-symptom. They are not a random sample: SUP-3155's post-cutover lots run at
-8.0% (named) and 14.2% (unnamed) against 2.4% before.
+for anything. A join of receipts to purchase orders on `po_id` matches every
+pre-cutover receipt and silently matches nothing after it, so the lots received
+after go-live drop out with no symptom. They are not a random sample:
+SUP-3155's post-cutover lots run at 8.0% (named) and 14.2% (unnamed) against
+2.4% before, and the return authorisations sit on the pre-cutover lots, so the
+scrapped share collapses with them.
 *Correct attempt:* checks that the join matched, resolves post-cutover
-receipts through the reference extract, and attributes all 63 SUP-3155 lots:
-6.100%.
-*Careless attempt:* reads SUP-3155 at 3.42% on 43 lots, buys 14,000 fewer
-pieces from it, and awards SUP-3155. Measured 0.159 with 0 of 93 decision
-points.
+receipts through the reference extract, and attributes all 63 SUP-3155 lots.
+*Careless attempt:* reads SUP-3155's scrapped share at 1.497% instead of
+4.792%, and awards SUP-3155. Measured 0.127 with 0 of 172 decision points.
 
 **1. Attribution off the free-text supplier field.**
 *Planted:* the inspection log's `supplier` field is empty or `null` on 59 of
 the incoming records and inconsistently spelled on the rest (the change record
 explains why). Every lot is nonetheless attributable: `lot_id` → goods receipt
 → purchase order → the supplier master's `name_aliases` sheet → supplier code.
-The blank-field lots carry SUP-3155's worst quality: 7.5% before the cutover
-and 14.2% after it, against 2.4% on its named pre-cutover lots.
-*Correct attempt:* attributes through the receipt join.
-*Careless attempt:* groups on the field that is right there, reads SUP-3155 at
-3.43%, and awards SUP-3155. Measured 0.159 with 0 of 93 decision points.
+The blank-field lots carry SUP-3155's worst quality.
+*Careless attempt:* groups on the field that is right there and awards
+SUP-3155. Measured 0.127 with 0 of 172 decision points. It is independent of
+0d: resolving the ERP numbers does not rescue the blank lots and vice versa.
 
-Challenges 0b and 1 are independent: an attempt that joins through the
-receipts but not the reference extract loses the post-cutover lots, one that
-resolves the numbers but attributes on the free-text field loses the blank
-ones, and both land on the same wrong supplier. Only an attempt that does both
-reaches 6.100%.
-
-**2. Scope of demand has to be inferred from a dirty cube extract.**
-*Planted:* `demand/forecast_2026.csv` is a raw planning-cube dump. It carries
-the superseded October S&OP cycle beside the frozen November one (`plan_cycle`
-column; 538,600 SP-40 pieces against 486,000), a `TOTAL` subtotal row per part
-and cycle, and twelve monthly rows for SP-22, a different part on a separate
-agreement. The handover note says the plan was frozen at the November cycle
-and that the dump is a direct cube export carrying the cube's own subtotal
-rows; it does not say that a second cycle is in the file, and nothing does the
-filtering.
-*Correct attempt:* sums the twelve monthly SP-40 rows of the November cycle →
-486,000 good units.
-*Careless attempt:* plans on the October cycle, sums both cycles, or counts
-the subtotal rows — each pushes the purchase quantity above 520,000 pieces and
-hands the award to SUP-4077 through a rebate that is not really earned.
-Measured 0.317 with 0 of 93 decision points, all three ways.
+**2. Which plan cycle is the plan.**
+*Planted:* the dump carries the superseded October cycle beside the frozen
+November one. The handover note designates the November cycle and says nothing
+about a second cycle being in the file.
+*Careless attempt:* plans on October, 537,300 pieces over the contract year,
+crosses SUP-4077's threshold and awards it. Measured 0.210.
 
 **3. Quoted prices are not comparable as quoted.**
-*Planted:* the four offers are in four currencies, and SUP-2318 quotes EUR
-176.00 **per 100-piece box** while the others quote per piece. The finance memo
-mandates fixed FY2026 planning rates and explicitly rules out the 2025 daily FX
-export, which is also shipped and whose averages sit materially below the
-planning rates. *Correct attempt:* restates all four to USD per single piece —
-1.9450 / 1.9096 / 1.8639 / 1.8254. *Careless attempt:* uses 2025 average rates
-and awards SUP-3155 (measured 0.386, 0 decision points).
+The four offers are in four currencies and SUP-2318 quotes EUR 172.00 **per
+100-piece box**. The finance memo mandates fixed FY2026 planning rates and
+rules out the 2025 daily export, which is also shipped and averages below them.
+*Careless attempt:* 2025 averages, awards SUP-3155, measured 0.337.
 
 **4. Rejects are a purchase-quantity problem, not a line item.**
-*Planted:* clause 5.4 of all four term sheets — identically worded, so no
-supplier is advantaged by a hidden term — states that rejected pieces are
-scrapped by the buyer with no credit and no replacement, and that the buyer
-must order enough to meet its net good-unit requirement. The demand column is
-explicitly labelled net good units. Clause 5 of each contract separately states
-a *specification limit* on the reject rate and says in terms that it is not a
-forecast. SUP-2318's clause 1 adds that partial boxes are not tendered.
-*Correct attempt:* grosses up, `ceil(486,000 / (1 − r))`, a spread of 22,562
-pieces between best and worst supplier, and rounds SUP-2318 up to 4,922 whole
-boxes. *Careless attempt:* buys 486,000 pieces from everyone, and the award
-flips to SUP-3155 (measured 0.365, 4 decision points).
+Clause 5.4 makes the buyer responsible for ordering enough to meet its net
+good-unit requirement, and the demand column is explicitly labelled net good
+units. Clause 5 separately states a *specification limit* and says in terms
+that it is not a forecast. SUP-2318's clause 1 adds that partial boxes are not
+tendered. *Careless attempt:* buys 493,000 from everyone and awards SUP-3155,
+measured 0.259.
 
 **5. Incoterms decide who pays freight.**
-*Planted:* two offers are FCA at the seller's works and two are DDP. The
-freight tariff lists all four lanes with a neutral note that applicability
-depends on the Incoterm in the supply contract, so the tariff itself does not
-say which lanes to charge. *Correct attempt:* charges the DE and UK lanes only,
-at twelve shipments per year as each contract's clause 2 states. *Careless
-attempt:* charges nobody, and the award flips to SUP-4077 (measured 0.407).
+Two offers are FCA at the seller's works and two are DDP. The freight tariff
+lists all four lanes with a neutral note that applicability depends on the
+Incoterm. *Careless attempt:* charges nobody, awards SUP-4077, measured 0.409.
 
 **6. Two rebate structures that do not pay what they appear to.**
-*Planted:* SUP-2318's clause 4.2 is a **banded** rebate — each rate applies only
-to the volume inside its band, and clause 4.2 says so in terms. SUP-4077's
-clause 4.2 grants 4.0% on all pieces but **only if** contract-year volume
-reaches 520,000, and clause 4.1 separately commits the buyer to that same
-520,000 with a GBP 0.35 per-piece shortfall charge. The correct purchase
-quantity, 497,951, sits 4.2% below that threshold — so the threshold can only
-be evaluated after challenges 0a, 0b, 1, 2 and 4 are done right. *Correct
-attempt:* SUP-2318 earns USD 11,011 and SUP-4077 earns nothing while owing
-USD 9,816. *Careless attempt:* re-rates SUP-2318's whole year at 3.0% (USD
-28,197) and awards SUP-2318 (measured 0.450), or treats SUP-4077's rebate as
-earned and awards SUP-4077 (measured 0.407).
+SUP-2318's clause 4.2 is **banded** — each rate applies only to the volume
+inside its band, USD 11,113 rather than USD 27,909 at a flat 3.0%. SUP-4077's
+4.0% rebate is earned only at 520,000 pieces, and clause 4.1 separately commits
+the buyer to that same 520,000 with a GBP 0.35 per-piece shortfall charge. The
+correct buy, 504,431, sits 3.0% below it — so the threshold can only be
+evaluated after 0a, 0b, 0c, 0d and 1 are all done right. *Careless attempts:*
+0.435 and 0.409.
 
-**7. The volume commitment is decisive on its own.**
-*Planted:* the winning margin is USD 2,322.53, or 0.24% of contract value.
-SUP-4077's clause 4.1 shortfall charge is USD 9,816.21 — four times the
-margin. An attempt that reads clause 4.2 (the rebate is not earned below
-520,000 pieces) but stops before clause 4.1 (the same 520,000 is a commitment
-with a per-piece shortfall charge) awards SUP-4077.
+**7. The winner's edge is made of the terms a hurried model drops.**
+SUP-1042 holds the **highest** quoted price of the four (USD 1.9450 against
+USD 1.7905 for SUP-4077) and wins by USD 2,374.70, or 0.25%. Its Net 90 terms
+are worth USD 14,242 against the Net 30 baseline at 9.0% WACC where SUP-4077's
+Net 60 is worth USD 6,681, and SUP-4077's 1% 10 cash discount is a further trap
+for the runner-up's total: at 9.0% the standard date is USD 2,010 cheaper, so a
+model that takes a discount because one is offered mis-states it. Dropping
+payment terms costs SUP-1042 the award (0.415); so does dropping disposal
+(0.420), which is worth far more to SUP-4077 than to the winner.
 
-**8. The winner's edge is made of the terms a hurried model drops.**
-*Planted:* SUP-1042's edge is not in its price, which is the highest of the
-four, but in two line items that sit at the end of the cost build-up. Its Net
-90 payment terms are worth USD 14,244.08 against a Net 30 baseline at 9.0%
-WACC (finance memo, section 3), where SUP-4077's are worth USD 6,723.99; and
-its scrap bill at USD 1.25 per rejected piece (section 5) is USD 11,262.50
-against SUP-4077's USD 14,938.75. Either line alone exceeds the margin. An
-attempt that models material, freight, rebates and the shortfall and stops
-there — the profile the previous sweep produced — awards SUP-4077. SUP-4077's
-1% 10 cash discount is a further trap for the total: at 9.0% the standard Net
-60 date is USD 2,071.99 cheaper, so a model that takes a discount because one
-is offered mis-states the runner-up's cost.
+**8. Coarse-fact shortcuts are dead by construction.** The winner is the most
+expensive quote, not the cheapest; it is not the supplier with the lowest
+reject rate (SUP-2318 is, at 1.250%); it is not the newest supplier; and it is
+not the only DDP offer. Ranking on any single shipped number is wrong.
 
 # Taxonomy tags
 
 Objectives: cost modelling, total-cost-of-ownership comparison, supplier
 selection, data reconciliation across systems, entity resolution, contract
-interpretation, scope determination, quality-cost analysis, working-capital
-valuation.
+interpretation, scope and period determination, quality-cost analysis,
+working-capital valuation.
 
 Reasoning phases scored by the rubric: explore, analyze, synthesize, recommend,
 instruction_following.
@@ -215,207 +219,157 @@ JSONL, Markdown, plain text.
 Target band: **strong model mean reward at or under 0.6, weak model mean at or
 under 0.35 over four trials each.**
 
-Three revisions have missed the band, and each diagnosis was one layer short
-of the last:
+Five revisions have missed the band, and each diagnosis was one layer short of
+the last:
 
-* **Revision 2** scored the weak model 0.889 (0.87 / 0.87 / 0.89 / 0.94). Every
-  planted trap was a documented step and the decision was one figure — which
-  supplier — so an attempt that never got a number right still collected it.
-* **Revision 3** added three population traps and made the decision three
-  figures. The weak model scored 0.778 (0.70 / 0.69 / 0.67 / 0.69 test-side).
-  It was reaching SUP-1042 in every trial, because the data dictionary
-  explained the traps: it told the attempt that source rejects are never
-  received or invoiced, that a crosswalk resolves the post-cutover numbers, and
-  that the demand dump is not filtered to one cycle. Three judgements had been
-  written down as three instructions.
-* **Revision 4** removed the instructions: the documents describe fields and
-  systems and stop there. The weak model scored 0.631 (0.683 / 0.618 / 0.587
-  / 0.634). It cleared every judgement and still reached SUP-1042, and the
-  scores say exactly how: 0.683 is the measured reward of an attempt that
-  gets everything right and leaves out payment terms, and the other three
-  trials sit where one or two more small cost terms are also missing. Those
-  omissions did not flip the award because SUP-4077 benefited from payment
-  terms and scrap *more* than SUP-1042 did, so dropping them helped the
-  winner.
+* **Revision 2** scored the weak model 0.889. Every planted trap was a
+  documented step and the decision was one figure, so an attempt that never got
+  a number right still collected it.
+* **Revision 3** added population traps and made the decision three figures:
+  0.778. The data dictionary still explained the traps, so three judgements had
+  been written down as three instructions.
+* **Revision 4** removed the instructions: 0.631. The attempt cleared every
+  judgement and still reached the right supplier, because the omissions it did
+  make happened to help the winner.
+* **Revision 5** rebuilt the winner's edge out of exactly the terms a hurried
+  cost model drops and thinned the margin to 0.24%: **0.594** (0.600 / 0.580 /
+  0.607 / 0.590 over four trials). The scores are tight and high, which says
+  the weak model was reaching the right supplier in every trial and losing
+  points only on figures. Decision weight was that model's floor, not its risk.
 
-**Revision 5 makes the winner's edge out of exactly those terms.** SUP-1042
-moves to Net 90 and SUP-4077 to a 1% 10 Net 60 whose discount is not worth
-taking, so payment terms are worth USD 14,244 to the winner and USD 6,724 to
-the runner-up; scrap disposal rises to USD 1.25 per rejected piece, so the
-winner's better quality is worth USD 3,676 there; SUP-4077's price is retuned
-so the margin is **0.24%**. Leaving out payment terms or scrap now each hands
-the award to SUP-4077. SUP-2318 and SUP-3155 are repriced so that the
-attribution and banded-rebate traps keep their teeth at the new margin. The
-rubric stays bound to figures — 91% of its positive weight names a value only
-the correct pipeline produces, each with both renderings a memo may use for
-it (`USD 9,816.21 or USD 9,816`), so a grader marks it from the deliverable
-without a tolerance of its own to invent.
-
-Four independent judgements gate the answer, each landing on a different
-wrong supplier, and none of them is a checklist item — and behind them every
-line of the cost build-up is decisive too:
-
-| Judgement | What the documents say | What they do not say |
-| --- | --- | --- |
-| which inspection records are a reject rate | what a source inspection is, what happens to pieces rejected at each point | that source records do not belong in the rate |
-| how a lot reaches a supplier | that receipts carry the posting system's PO number; both series are on a reference extract | that a join on `po_id` loses two fifths of the lots |
-| whether the free-text supplier field is usable | that it is keyed by hand and not validated | that the lots it omits are the worst ones |
-| which plan cycle is the plan | that the plan was frozen at the November cycle | that the dump also carries October and its subtotals |
+**Revision 6 attacks the floor.** Two new judgements were planted, both of the
+kind that is hard to *notice* rather than hard to execute, and both silent:
+what a rejected piece actually costs, and which months of a rolling cube the
+contract covers. The prices were retuned around them so that **every one of the
+six judgements flips the award on its own**, and so that the winner sits
+**third or fourth** on the uncorrected views rather than second. Decision
+weight moved from the bottom of the permitted band to the top — 44.6% of
+test-side positive weight — because the decision is now the hard part rather
+than the banked part.
 
 Measured against the shipped verifier by mutating the reference solution, one
 omission per row:
 
 | Single omission | Lands on | Contract qty | Contract cost | Tests | Decision |
 | --- | --- | --- | --- | --- | --- |
-| pools the SOURCE inspections (dedupe keeps first record) | SUP-4077 | 497,951 | USD 962,135.40 | 0.233 | 0 / 80 |
-| pools the SOURCE inspections (dedupe keeps last record) | SUP-4077 | 497,951 | USD 962,135.40 | 0.233 | 0 / 80 |
-| pools the SOURCE inspections, no dedupe | SUP-4077 | 497,251 | USD 960,263.08 | 0.164 | 0 / 80 |
-| joins receipts without the ERP number reference | SUP-3155 | 503,199 | USD 952,473.38 | 0.164 | 0 / 80 |
-| attributes lots on the free-text supplier field | SUP-3155 | 503,259 | USD 952,659.39 | 0.164 | 0 / 80 |
-| plans on the October S&OP cycle | SUP-4077 | 551,845 | USD 1,014,420.88 | 0.347 | 0 / 80 |
-| sums both S&OP cycles | SUP-4077 | 1,049,796 | USD 1,924,140.73 | 0.347 | 0 / 80 |
-| counts the TOTAL subtotal rows | SUP-4077 | 995,902 | USD 1,825,679.70 | 0.347 | 0 / 80 |
-| no yield gross-up | SUP-3155 | 486,000 | USD 899,154.55 | 0.379 | 3 / 80 |
-| 2025 average FX instead of planning rates | SUP-3155 | 517,572 | USD 901,047.13 | 0.406 | 0 / 80 |
-| charges no inbound freight | SUP-4077 | 497,951 | USD 927,014.24 | 0.516 | 0 / 80 |
-| re-rates SUP-2318's whole year at 3.0% | SUP-2318 | 492,200 | USD 955,734.37 | 0.562 | 0 / 80 |
-| treats SUP-4077's rebate as earned, no shortfall | SUP-4077 | 497,951 | USD 915,959.85 | 0.434 | 0 / 80 |
-| misses the shortfall charge alone (clause 4.1) | SUP-4077 | 497,951 | USD 952,319.18 | 0.434 | 0 / 80 |
-| ignores payment terms | SUP-4077 | 497,951 | USD 968,859.38 | 0.434 | 0 / 80 |
-| ignores scrap disposal | SUP-4077 | 497,951 | USD 947,196.65 | 0.434 | 0 / 80 |
-| ignores SUP-2318's whole-box rule | SUP-1042 | 495,010 | USD 959,812.87 | 0.776 | 80 / 80 |
-| multiplies by the 4-dp rounded price | SUP-1042 | 495,010 | USD 959,812.87 | 0.785 | 71 / 80 |
-| reference solution | SUP-1042 | 495,010 | USD 959,812.87 | 1.000 | 80 / 80 |
+| grosses the buy up on every reject, not the scrapped share | SUP-4077 | 505,123 | USD 955,030.16 | 0.241 | 0 / 172 |
+| pools the SOURCE inspections (dedupe keeps first record) | SUP-4077 | 504,431 | USD 953,203.26 | 0.166 | 0 / 172 |
+| pools the SOURCE inspections (dedupe keeps last record) | SUP-4077 | 504,431 | USD 953,203.26 | 0.166 | 0 / 172 |
+| pools the SOURCE inspections, no dedupe | SUP-4077 | 503,801 | USD 951,540.05 | 0.127 | 0 / 172 |
+| joins receipts without the ERP number reference | SUP-3155 | 500,493 | USD 917,735.67 | 0.127 | 0 / 172 |
+| attributes lots on the free-text supplier field | SUP-3155 | 500,359 | USD 917,324.96 | 0.127 | 0 / 172 |
+| plans on calendar 2026 instead of the contract year | SUP-4077 | 523,871 | USD 944,979.72 | 0.210 | 0 / 172 |
+| plans on the whole fifteen-month cube horizon | SUP-4077 | 638,058 | USD 1,149,594.12 | 0.210 | 0 / 172 |
+| counts the TOTAL subtotal rows as well | SUP-4077 | 1,142,489 | USD 2,053,499.37 | 0.210 | 0 / 172 |
+| plans on the superseded October S&OP cycle | SUP-4077 | 549,758 | USD 991,367.89 | 0.210 | 0 / 172 |
+| no yield gross-up | SUP-3155 | 493,000 | USD 894,770.00 | 0.259 | 7 / 172 |
+| 2025 average FX instead of planning rates | SUP-3155 | 517,815 | USD 876,622.61 | 0.337 | 0 / 172 |
+| charges no inbound freight | SUP-4077 | 504,431 | USD 917,706.27 | 0.409 | 0 / 172 |
+| re-rates SUP-2318's whole year at 3.0% | SUP-2318 | 498,500 | USD 945,933.68 | 0.435 | 0 / 172 |
+| treats SUP-4077's rebate as earned, no shortfall | SUP-4077 | 504,431 | USD 910,145.26 | 0.409 | 0 / 172 |
+| misses the shortfall charge alone (clause 4.1) | SUP-4077 | 504,431 | USD 946,271.95 | 0.409 | 0 / 172 |
+| ignores payment terms | SUP-4077 | 504,431 | USD 959,884.23 | 0.415 | 0 / 172 |
+| ignores scrap disposal | SUP-4077 | 504,431 | USD 938,914.51 | 0.420 | 0 / 172 |
+| ignores SUP-2318's whole-box rule | SUP-1042 | 494,936 | USD 950,828.57 | 0.785 | 172 / 172 |
+| multiplies by the 4-dp rounded price | SUP-1042 | 494,936 | USD 950,828.57 | 0.816 | 153 / 172 |
+| reference solution | SUP-1042 | 494,936 | USD 950,828.57 | 1.000 | 172 / 172 |
 
 And the same measurement for attempt profiles — a competent attempt that does
 every documented step and misses one or two judgements:
 
 | Attempt profile | Lands on | Contract qty | Contract cost | Tests | Decision |
 | --- | --- | --- | --- | --- | --- |
-| pools SOURCE records (the default if the log is read as one population) | SUP-4077 | 497,951 | USD 962,135.40 | 0.233 | 0 / 80 |
-| pools SOURCE, joins receipts on po_id as it stands | SUP-3155 | 503,199 | USD 952,473.38 | 0.178 | 3 / 80 |
-| pools SOURCE, attributes on the free-text supplier field | SUP-4077 | 496,933 | USD 959,412.51 | 0.164 | 0 / 80 |
-| joins receipts on po_id as it stands, sums both plan cycles | SUP-4077 | 1,050,431 | USD 1,926,075.53 | 0.146 | 0 / 80 |
-| free-text attribution, October plan cycle | SUP-4077 | 550,716 | USD 1,010,980.90 | 0.146 | 0 / 80 |
-| every judgement right, whole-box rule and rounded price missed | SUP-1042 | 495,010 | USD 959,812.87 | 0.689 | 71 / 80 |
-| every judgement right, payment terms and scrap missed | SUP-4077 | 497,951 | USD 953,920.63 | 0.434 | 0 / 80 |
+| reads the log as one reject population (the default) | SUP-4077 | 505,123 | USD 955,030.16 | 0.241 | 0 / 172 |
+| one reject population, pools SOURCE records | SUP-4077 | 505,123 | USD 955,030.16 | 0.140 | 0 / 172 |
+| one reject population, calendar-2026 window | SUP-4077 | 524,591 | USD 947,149.52 | 0.210 | 0 / 172 |
+| pools SOURCE, joins receipts on po_id as it stands | SUP-3155 | 500,493 | USD 917,735.67 | 0.145 | 7 / 172 |
+| free-text attribution, October plan cycle | SUP-4077 | 549,387 | USD 990,249.84 | 0.096 | 0 / 172 |
+| every judgement right, whole-box rule and rounded price missed | SUP-1042 | 494,936 | USD 950,828.57 | 0.674 | 153 / 172 |
+| every judgement right, payment terms and disposal missed | SUP-4077 | 504,431 | USD 945,595.48 | 0.383 | 0 / 172 |
+| every judgement right, cube horizon not trimmed | SUP-4077 | 638,058 | USD 1,149,594.12 | 0.210 | 0 / 172 |
 
-Twenty-two of the twenty-five omissions land on a different supplier, at
-0.14 to 0.50 test-side with 0 of 93 test-side decision points; the three that
-do not are SUP-2318's whole-box rule and the rounded price, which change no
-figure of the winner's, and the reference itself.
+**Twenty-five of the twenty-eight mutations land on a different supplier, at
+0.096 to 0.435 test-side with at most 7 of 172 decision points.** The three
+that do not are SUP-2318's whole-box rule and the 4-dp rounded price, neither
+of which changes a figure of the winner's, and the reference itself. The
+highest any wrong-supplier route reaches is 0.435, and that is an attempt that
+got all six judgements and every other cost term right and misread one rebate
+clause.
 
-The rubric adds little to a wrong-supplier attempt, and less than it used to,
-because the cost model is a **file** rather than a paragraph.
-`cost_buildup.csv` takes one row per element the attempt charged each
-supplier, with the attempt's own labels, bound only by the requirement that a
-supplier's elements sum to the total it filed. That is a disclosure duty, not
-a specification: nothing tells the attempt what the elements are, which is why
-it does not become the checklist that put revisions 2 and 3 out of band.
+What a well-formed but analytically empty answer can bank is 6.2% of the 386
+test-side positive weight: file existence, headers, sort order, the
+self-consistency checks and the three memo checks that do not turn on a figure.
+Six sentinel checks worth 67 points name the corrections one at a time and are
+earned only by an attempt that made them.
 
-What it buys is that the whole cost model is now graded as data. Sixteen
-points of test weight and 21 of rubric weight score the elements against the
-figures only the correct pipeline produces — the shortfall on SUP-4077's
-volume commitment, SUP-2318's band-by-band rebate, the two freight lanes, the
-working-capital value of each supplier's terms, the scrap charge — and an
-attempt that never modelled one of them has no row carrying its amount. That
-is exactly the profile the last sweep produced: an attempt that charges
-material, freight and rebates and stops now fails the build-up file as well as
-every total.
+The floor is protected: three test penalties total −15 against 386 positive
+weight, and none fires on a merely incomplete answer. Every one is written to
+pass only when its specific defect is present, so all three correctly decline
+to fire on the reference solution.
 
-An attempt has to clear all four judgements *and* carry every line of the cost
-build-up to score above 0.50.
-
-**The decision sits at the bottom of the permitted band, not the top.** The
-usual advice is to widen decision share so a wrong conclusion costs more, and
-earlier revisions of this task did that. Five sweeps say this weak model
-reaches the right supplier, so decision weight is its floor rather than its
-risk: every point of it is banked before a figure is checked. Decision is
-therefore 31.6% of positive weight — inside the 30-50% band, at the end of it
-that suits the evidence — and the weight taken off it sits on figures that
-have to be exactly right: the four reject rates, the four purchase quantities,
-the four totals, the four sentinels and the twelve elements of the cost
-build-up.
-
-What a well-formed but analytically wrong answer can still bank is 7% of the
-402 total: file existence, headers, sort order, the two self-consistency
-checks and the instruction-following rubric criteria, each capped at one
-point. An attempt that gets the decision right and the figures wrong scores
-0.39 before it earns anything for the analysis, against 0.47 a revision ago. Four sentinel checks worth 34 points name the
-population corrections and are earned only by an attempt that made them. The
-decision carries 31.6% of total positive weight (127 of 402), inside the
-30-50% band, and none of it is reachable by naming a supplier alone: two of the
-three decision figures are the contracted quantity and the contract-year cost
-to the cent.
-
-The floor is protected: three test penalties and two rubric penalties total
-−26 against 402 positive weight, and none fires on a merely incomplete answer.
-
-Two checks earn nothing for naming a supplier or a file: `## Basis of Decision`
-has to put one of a losing supplier's own figures, or one of the things that
-separate the offers, beside its name, and `## Data Quality and Exclusions` has
-to report at least three of the populations set aside rather than only the
-non-candidate supplier.
-
-Risk of being too hard is bounded: the deliverables are three plain files, the
-environment preinstalls what is needed to open every shipped format, every
-population the attempt has to reason about is described in a shipped document,
-and the reference solution runs from the shipped inputs with the standard
-library plus `openpyxl`.
+Risk of being too hard is bounded, and deliberately so: the deliverables are
+four plain files; the environment preinstalls what is needed to open every
+shipped format; every population the attempt has to reason about is described
+in a shipped document and every date, rate and clause it needs is stated
+somewhere in `/workspace/data`; and the reference solution runs from the
+shipped inputs with the standard library plus `openpyxl`. Nothing an analyst
+would obviously have is withheld — what is withheld is the conclusion.
 
 # Ground truth recommendation and rationale
 
 **Award the FY2026 SP-40 contract to SUP-1042, Meridian Precision Works, LLC:
-495,010 pieces for USD 959,812.87.**
+494,936 pieces for USD 950,828.57.**
 
-FY2026 good-unit requirement: 486,000 SP-40 pieces (frozen November cycle).
+FY2026 good-unit requirement: 493,000 SP-40 pieces — the twelve monthly SP-40
+rows of the frozen November 2025 S&OP cycle that fall in the contract year
+1 April 2026 – 31 March 2027.
 
-| rank | supplier | quoted USD/piece | reject rate | units to buy | FY2026 total USD | USD/good unit |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | SUP-1042 | 1.9450 | 1.820% | 495,010 | 959,812.87 | 1.9749 |
-| 2 | SUP-4077 | 1.8254 | 2.400% | 497,951 | 962,135.40 | 1.9797 |
-| 3 | SUP-2318 | 1.9096 | 1.250% | 492,200 | 972,920.77 | 2.0019 |
-| 4 | SUP-3155 | 1.8639 | 6.100% | 517,572 | 997,031.30 | 2.0515 |
+| rank | supplier | quoted USD/piece | rejected | scrapped | units to buy | FY2026 total USD | USD/good unit |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | SUP-1042 | 1.9450 | 1.820% | 0.391% | 494,936 | 950,828.57 | 1.9287 |
+| 2 | SUP-4077 | 1.7905 | 2.400% | 2.266% | 504,431 | 953,203.26 | 1.9335 |
+| 3 | SUP-2318 | 1.8662 | 1.250% | 1.100% | 498,500 | 962,729.48 | 1.9528 |
+| 4 | SUP-3155 | 1.8285 | 6.100% | 4.792% | 517,815 | 970,826.72 | 1.9692 |
 
-Margin over the runner-up: **USD 2,322.53**, or 0.24%.
+Margin over the runner-up: **USD 2,374.70**, or 0.25%.
 
 The figures that force it: SUP-1042 is DDP, so it carries no inbound freight
-where SUP-2318 and SUP-4077 carry USD 36,276 and USD 35,121; it has the
-second-best incoming quality, so its buy quantity is 22,562 pieces below
-SUP-3155's; it has no volume commitment, where SUP-4077 owes USD 9,816 in
-shortfall charges and earns none of its 4.0% rebate; its Net 90 terms are
-worth USD 14,244 against the Net 30 baseline at 9.0% WACC, where SUP-4077's
-Net 60 is worth USD 6,724; and its scrap bill is USD 3,676 smaller. The
-shortfall charge, the payment-terms gap and the scrap gap are each larger
-than the USD 2,323 margin.
+where SUP-2318 and SUP-4077 carry USD 36,667 and USD 35,497; it returns four
+fifths of what it fails, so only 0.391% of its inspected pieces are a loss and
+its buy is 22,879 pieces below SUP-3155's; it has no volume commitment, where
+SUP-4077 owes USD 6,931 in shortfall charges and earns none of its 4.0%
+rebate; and its Net 90 terms are worth USD 14,242 against the Net 30 baseline
+at 9.0% WACC where SUP-4077's Net 60 is worth USD 6,681. The shortfall charge,
+the payment-terms gap and the disposal gap are each larger than the USD 2,375
+margin.
 
 Why the plausible wrong answers are wrong:
 
-- **SUP-4077** is the cheapest quote (USD 1.8254) and appears to carry a 4.0%
-  rebate plus a 1% 10 cash discount. But at 497,951 pieces it misses its own
-  520,000-piece rebate threshold entirely and additionally owes a GBP 0.35
-  per-piece shortfall charge on 22,049 pieces, USD 9,816; the discount is not
-  worth taking. Its buyer-paid UK freight adds USD 35,121 back. It finishes
-  second, USD 2,323 behind — and it wins every analysis that inflates
-  SUP-1042's reject rate with the source inspections, inflates demand past
-  the threshold, reads clause 4.2 without clause 4.1, or leaves payment terms
-  or scrap out of the cost build-up.
-- **SUP-3155** is second-cheapest on quoted price and is DDP with Net 60 terms,
-  so it wins every analysis that skips the yield gross-up, that loses its
-  post-cutover lots to the ERP renumbering, or that reads the inspection log
-  off the free-text supplier field. Its true 6.100% reject rate forces a
-  517,572-piece buy and USD 39,465 of scrap disposal, putting it last.
-- **SUP-2318** has the best incoming quality at 1.250%, and wins if its banded
-  rebate is re-rated at a flat 3.0%. Read correctly the rebate is USD 11,011
-  rather than USD 28,197, and its buyer-paid German freight of USD 36,276
-  leaves it third.
+- **SUP-4077** is the cheapest quote and appears to carry a 4.0% rebate plus a
+  1% 10 cash discount. At 504,431 pieces it misses its own 520,000-piece
+  rebate threshold entirely and owes GBP 0.35 per piece on the 15,569-piece
+  shortfall, USD 6,931; the discount is not worth taking. Its buyer-paid UK
+  freight adds USD 35,497 back. It finishes second by USD 2,375 — and it wins
+  every analysis that grosses the buy up on every reject, pools the source
+  inspections, mis-cuts the demand window, reads clause 4.2 without clause 4.1,
+  or leaves payment terms or disposal out of the cost build-up.
+- **SUP-3155** is DDP with Net 60 terms, so it wins every analysis that skips
+  the yield gross-up, that loses its post-cutover lots to the ERP renumbering,
+  that reads the inspection log off the free-text supplier field, or that
+  restates the offers at 2025 average FX. Read correctly, 4.792% of its
+  inspected pieces were scrapped, which forces a 517,815-piece buy and USD
+  31,019 of disposal, putting it last.
+- **SUP-2318** has the best incoming reject rate at 1.250%, and wins if its
+  banded rebate is re-rated at a flat 3.0%. Read correctly the rebate is USD
+  11,113 rather than USD 27,909, and its buyer-paid German freight of USD
+  36,667 leaves it third.
 
 Determinism: every figure follows from the shipped files plus the mandated
 planning constants in the finance memo, with intermediates carried unrounded
 and only the reported figure rounded, as `instruction.md` states. Using the
 clause 5 specification limits in place of observed 2025 performance is a
-conservative reading rather than an error; its figures differ throughout,
-and the prompt asks for the observed record.
+conservative reading rather than an error; its figures differ throughout, and
+the prompt asks for the observed record.
 
 # Expected reasoning trajectory
 
@@ -424,11 +378,11 @@ A golden solution is included (`solution/solve.py`, `solution/solve.sh`,
 
 1. Inventory `/workspace/data`, read the data dictionary, the change record,
    the four term sheets and the finance memo, and notice that the four offers
-   differ in currency, unit of measure, Incoterm, payment terms and volume
-   structure.
+   differ in currency, unit of measure, Incoterm, payment terms, volume
+   structure — and that they all run 1 April 2026 to 31 March 2027.
 2. Establish scope from the demand dump: keep the frozen November cycle, filter
-   to SP-40, drop the `TOTAL` subtotal rows, sum the twelve monthly rows →
-   486,000 good units.
+   to SP-40, drop the `TOTAL` subtotal rows, and cut the cube's fifteen-month
+   horizon down to the contract year → 493,000 good units.
 3. Resolve supplier identity: load the supplier master, build the alias → code
    map, and map every purchase order to a supplier code.
 4. Build `lot_id → purchase order → supplier code` from the goods receipts,
@@ -436,28 +390,26 @@ A golden solution is included (`solution/solve.py`, `solution/solve.sh`,
    through the purchase-order reference extract, so that every inspection lot
    is attributed by key rather than by name.
 5. Restrict the inspection log to `INCOMING` records, deduplicate on `lot_id`,
-   drop the non-candidate SUP-9001, and aggregate lots, units and rejects per
-   candidate.
-6. Recognise from clause 5.4 that rejects are scrapped without credit, gross the
-   buy quantity up to `ceil(486,000 / (1 − r))`, and round SUP-2318 up to whole
-   boxes.
+   drop the non-candidate SUP-9001, and aggregate lots, inspected pieces,
+   rejected pieces and — separately — the pieces dispositioned `SCRAP`.
+6. Recognise from clause 5.4 that a returned piece is replaced free inside the
+   contract year and a scrapped one is not, so the buy is
+   `ceil(493,000 / (1 − scrapped share))`, and round SUP-2318 up to whole boxes.
 7. Price each offer: convert at the mandated planning rates, divide SUP-2318's
    box price by 100, add the lane tariff plus brokerage over twelve shipments
    for the two FCA suppliers only, apply each rebate as its clause actually
-   reads, add SUP-4077's shortfall charge, add scrap disposal at USD 1.25 per
-   rejected piece, and value payment terms against Net 30 at 9.0% WACC,
-   checking SUP-4077's cash discount against its standard date and finding it
-   is not worth taking.
-8. Rank on cost per good unit, write the two CSVs, and write the memo: the
+   reads, add SUP-4077's shortfall charge, add disposal at USD 1.25 per scrapped
+   piece, and value payment terms against Net 30 at 9.0% WACC, checking
+   SUP-4077's cash discount against its standard date and finding it is not
+   worth taking.
+8. Rank on cost per good unit, write the three CSVs, and write the memo: the
    decision with its three figures, the comparison, the basis, the exclusions
-   and the risks — including that SUP-1042's incoming rate rests on its
-   source-sort cadence.
+   and the risks.
 
-The verifier is 42 checks (39 positive, 3 penalties) driven by
-`tests/test_weights.json`; the rubric is 48 criteria (46 positive, 2
-penalties). Every criterion names the exact figure or claim it grades, and
-grades it against a deliverable `instruction.md` asks for: half the rubric now
-scores the two cost files rather than the memo's prose. Local checks: the nop agent scores 0.000, the oracle scores 1.000
-(188 of 188 positive weight, with only the three penalty checks correctly
-declining to fire), and `solution/_provenance/verify_design.py` reproduces the
-Measured table above.
+The verifier is 48 checks (45 positive, 3 penalties) driven by
+`tests/test_weights.json`; the rubric is 50 criteria (48 positive, 2
+penalties). Every criterion names the exact figure or claim it grades against a
+deliverable `instruction.md` asks for. Local checks: the nop agent scores
+0.000, the oracle scores 1.000 (386 of 386 positive weight, with only the three
+penalty checks correctly declining to fire), and
+`solution/_provenance/verify_design.py` reproduces the Measured tables above.

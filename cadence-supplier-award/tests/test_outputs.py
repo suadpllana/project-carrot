@@ -70,7 +70,15 @@ AWARD = "SUP-1042"
 RUNNER_UP = "SUP-4077"
 NON_CANDIDATE = "SUP-9001"
 
-GOOD_UNITS = 486000
+# The FY2026 contract year the four offers cover is 1 April 2026 - 31 March
+# 2027 (term-sheet header block; finance policy section 6). The planning cube
+# dump is a rolling fifteen-month horizon carrying two S&OP cycles, so the
+# requirement has to be cut out of it: the frozen November cycle read over the
+# contract year is 493,000 pieces, read as calendar 2026 it is 512,000 and read
+# whole it is 623,600.
+GOOD_UNITS = 493000
+CALENDAR_UNITS = 512000
+HORIZON_UNITS = 623600
 
 COSTS_HEADER = ["supplier_code", "supplier_name", "quoted_price_usd_per_unit",
                 "units_to_purchase", "total_fy2026_cost_usd",
@@ -95,38 +103,69 @@ GOLD_NAME = {"SUP-1042": "Meridian Precision Works, LLC",
 # files. The checks below compare against these to half a unit in the last
 # reported place, so the reported value is accepted only where it is this
 # figure written to the required precision.
-GOLD_PRICE = {"SUP-1042": 1.9450, "SUP-2318": 1.9096,
-              "SUP-3155": 1.8639, "SUP-4077": 1.8254472}
-GOLD_UNITS = {"SUP-1042": 495010, "SUP-2318": 492200,
-              "SUP-3155": 517572, "SUP-4077": 497951}
-GOLD_TOTAL = {"SUP-1042": 959812.8677260275, "SUP-2318": 972920.7664,
-              "SUP-3155": 997031.2956844933, "SUP-4077": 962135.395738007}
-GOLD_PER_GOOD = {"SUP-1042": 1.9749235961440894,
-                 "SUP-2318": 2.0018945810699584,
-                 "SUP-3155": 2.0515047236306447,
-                 "SUP-4077": 1.9797024603662696}
+GOLD_PRICE = {"SUP-1042": 1.9450, "SUP-2318": 1.8662,
+              "SUP-3155": 1.828475, "SUP-4077": 1.7904672}
+GOLD_UNITS = {"SUP-1042": 494936, "SUP-2318": 498500,
+              "SUP-3155": 517815, "SUP-4077": 504431}
+GOLD_TOTAL = {"SUP-1042": 950828.5671013698, "SUP-2318": 962729.479,
+              "SUP-3155": 970826.7189421575, "SUP-4077": 953203.2644085682}
+GOLD_PER_GOOD = {"SUP-1042": 1.9286583511183972,
+                 "SUP-2318": 1.9527981318458418,
+                 "SUP-3155": 1.9692225536352080,
+                 "SUP-4077": 1.9334751813561220}
 GOLD_RANK = {"SUP-1042": 1, "SUP-4077": 2, "SUP-2318": 3, "SUP-3155": 4}
+
+# `rejected` is every piece failed at incoming inspection - what
+# defect_rates.csv reports. `scrapped` is the part of it Cadence disposed of;
+# the rest went back to the seller on a return authorisation and was replaced
+# free of charge inside the contract year (clause 5.4 of every term sheet), so
+# it is not a loss the purchase quantity has to carry.
 GOLD_DEFECTS = {
-    "SUP-1042": dict(lots=60, units=180000, rejected=3276, rate=1.820),
-    "SUP-2318": dict(lots=58, units=176000, rejected=2200, rate=1.250),
-    "SUP-3155": dict(lots=63, units=190000, rejected=11590, rate=6.100),
-    "SUP-4077": dict(lots=61, units=182000, rejected=4368, rate=2.400),
+    "SUP-1042": dict(lots=60, units=180000, rejected=3276, scrapped=704,
+                     returned=2572, rate=1.820),
+    "SUP-2318": dict(lots=58, units=176000, rejected=2200, scrapped=1936,
+                     returned=264, rate=1.250),
+    "SUP-3155": dict(lots=63, units=190000, rejected=11590, scrapped=9105,
+                     returned=2485, rate=6.100),
+    "SUP-4077": dict(lots=61, units=182000, rejected=4368, scrapped=4124,
+                     returned=244, rate=2.400),
 }
-GOLD_MARGIN = GOLD_TOTAL[RUNNER_UP] - GOLD_TOTAL[AWARD]   # 2322.53
+REJECTED_TOTAL = sum(d["rejected"] for d in GOLD_DEFECTS.values())    # 21434
+SCRAPPED_TOTAL = sum(d["scrapped"] for d in GOLD_DEFECTS.values())    # 15869
+RETURNED_TOTAL = sum(d["returned"] for d in GOLD_DEFECTS.values())    #  5565
+
+GOLD_MARGIN = GOLD_TOTAL[RUNNER_UP] - GOLD_TOTAL[AWARD]   # 2374.70
 REBATE_THRESHOLD_4077 = 520000
 BOX_2318 = 100
+
+# Individual elements of the cost build-up, at the 2 dp the file reports. Each
+# is reachable only through the analysis that produces it: the disposal base is
+# the pieces Cadence actually scraps, the freight lanes are the two FCA offers,
+# the rebate is banded and the shortfall is owed because the buy misses the
+# 520,000-piece commitment.
+GOLD_MATERIAL = {"SUP-1042": 962650.52, "SUP-2318": 930300.70,
+                 "SUP-3155": 946811.78, "SUP-4077": 903167.16}
+GOLD_DISPOSAL = {"SUP-1042": 2420.00, "SUP-2318": 6875.00,
+                 "SUP-3155": 31018.75, "SUP-4077": 14288.75}
+GOLD_FREIGHT = {"SUP-2318": 36667.00, "SUP-4077": 35497.00}
+GOLD_TERMS = {"SUP-1042": -14241.95, "SUP-3155": -7003.81,
+              "SUP-4077": -6680.96}
+GOLD_REBATE_2318 = -11113.22
+GOLD_SHORTFALL_4077 = 6931.32
 
 # The figures that stand behind each supplier's place in the ranking: its own
 # cost build-up and its own quality. `## Basis of Decision` has to say why the
 # suppliers that lost lose, so naming one is not enough - the statement that
 # names it has to carry one of that supplier's numbers.
 GOLD_DRIVERS = {
-    "SUP-1042": [959812.87, 1.9749, 495010, 1.820, 1.9450, 11262.50, 14244.08],
-    "SUP-2318": [972920.77, 2.0019, 492200, 1.250, 1.9096, 36276.40, 11010.75,
-                 28197.15, 7750.00],
-    "SUP-3155": [997031.30, 2.0515, 517572, 6.100, 1.8639, 39465.00, 7136.16],
-    "SUP-4077": [962135.40, 1.9797, 497951, 2.400, 1.8254, 35121.16, 9816.21,
-                 14938.75, 6723.99, 520000],
+    "SUP-1042": [950828.57, 1.9287, 494936, 1.820, 1.9450, 2420.00, 14241.95,
+                 0.391],
+    "SUP-2318": [962729.48, 1.9528, 498500, 1.250, 1.8662, 36667.00, 11113.22,
+                 27909.02, 6875.00, 1.100],
+    "SUP-3155": [970826.72, 1.9692, 517815, 6.100, 1.8285, 31018.75, 7003.81,
+                 4.792],
+    "SUP-4077": [953203.26, 1.9335, 504431, 2.400, 1.7905, 35497.00, 6931.32,
+                 14288.75, 6680.96, 520000, 2.266],
 }
 
 # The populations a data-quality section can report having set aside, each with
@@ -180,12 +219,24 @@ REASON_WORDS = (r"because|since|therefore|so that|so it|so they|as they|as it|"
 # as amounts: an attempt that never modelled them has no row carrying the
 # figure. Zero-valued elements are not required.
 GOLD_BUILDUP = {
-    "SUP-1042": {"scrap disposal": 11262.50, "payment terms": -14244.08},
-    "SUP-2318": {"scrap disposal": 7750.00},
-    "SUP-3155": {"scrap disposal": 39465.00, "payment terms": -7136.16},
-    "SUP-4077": {"scrap disposal": 14938.75, "payment terms": -6723.99,
-                 "shortfall charge": 9816.21},
+    "SUP-1042": {"payment terms": GOLD_TERMS["SUP-1042"]},
+    "SUP-3155": {"payment terms": GOLD_TERMS["SUP-3155"]},
+    "SUP-4077": {"payment terms": GOLD_TERMS["SUP-4077"]},
 }
+
+# Where in the demand data the requirement came from, for the second half of
+# what `## Cost Comparison` is asked to state: the period it covers. The
+# contract year is in the header block of all four term sheets and in section
+# 6 of the finance policy.
+CONTRACT_WINDOW_FROM = r"april\s*2026|apr\.?\s*2026|2026-04|04/2026|1[\s./-]*4[\s./-]*2026"
+CONTRACT_WINDOW_TO = r"march\s*2027|mar\.?\s*2027|2027-03|03/2027|31[\s./-]*3[\s./-]*2027"
+
+# The two dispositions an incoming reject can take. `## Data Quality and
+# Exclusions` is asked which records were counted towards the reject rates and
+# which were set aside; an attempt that never separated the two has no figure
+# for the pieces that went back to the seller.
+DISPOSITION_WORDS = (r"return|rtv|rma|replac|sent back|back to the (?:seller|"
+                     r"supplier|vendor)|scrap")
 
 # What separates the four offers. A statement that names a supplier that lost
 # and reaches for one of these is giving a reason, whatever words it uses; a
@@ -775,7 +826,12 @@ def test_cost_per_good_unit_correct():
             % (code, rows[code][5], round(gold, DP_PER_GOOD)))
 
 
-def test_cost_per_good_unit_consistent_with_total():
+def test_cost_per_good_unit_uses_the_contract_year_requirement():
+    """cost_per_good_unit_usd divides a supplier's own filed total by the
+    good-unit requirement it worked to, so it says which requirement that was.
+    The four offers run 1 April 2026 - 31 March 2027; the frozen November cycle
+    read over that window is 493,000 pieces, read as calendar 2026 it is
+    512,000 and read over the whole fifteen-month cube horizon 623,600."""
     rows, _ = costs_rows()
     assert rows, "no parsable rows in supplier_costs.csv"
     for code, r in rows.items():
@@ -793,12 +849,13 @@ def test_cost_per_good_unit_consistent_with_total():
 # ---------------------------------------------------------------------------
 # sentinels - each is earned only by the population correction it names
 # ---------------------------------------------------------------------------
-def test_sup1042_rate_counts_incoming_inspections_only():
+def test_reject_rates_count_incoming_inspections_only():
     """The inspection log pools pre-shipment SOURCE inspections with the
-    INCOMING ones. Pieces rejected at source never ship; counting them lifts
-    SUP-1042 from 1.820% to about 3.7% and hands the award to SUP-4077. Only
-    an attempt that restricted the rate to INCOMING records reports 180,000
-    pieces inspected and 3,276 rejected."""
+    INCOMING ones. Pieces failed at the seller's own plant are scrapped there
+    and never ship; counting them lifts the share of SUP-1042's inspected
+    pieces that Cadence scrapped from 0.391% to about 2.54% and hands the award
+    to SUP-4077. Only an attempt that restricted the rate to INCOMING records
+    reports 180,000 pieces inspected and 3,276 rejected."""
     rows, _ = defects_rows()
     assert rows and AWARD in rows, "no %s row in defect_rates.csv" % AWARD
     units, rejected = as_float(rows[AWARD][2]), as_float(rows[AWARD][3])
@@ -810,12 +867,13 @@ def test_sup1042_rate_counts_incoming_inspections_only():
         % (AWARD, rows[AWARD][3], rows[AWARD][2], gold["rejected"], gold["units"]))
 
 
-def test_sup3155_rate_carries_every_attributed_lot():
+def test_reject_rates_carry_every_attributed_lot():
     """SUP-3155's worst lots are the ones a careless attribution loses: the
-    post-cutover receipts that only the ERP number reference resolves, and the lots
-    whose free-text supplier field is blank. Both routes understate it to
-    about 3.5% and hand it the award. Only an attempt that attributed every
-    lot reports 63 lots and 11,590 rejected pieces."""
+    post-cutover receipts that only the ERP number reference resolves, and the
+    lots whose free-text supplier field is blank. Both routes cut the share
+    Cadence scrapped from 4.792% to about 1.5% and hand it the award. Only an
+    attempt that attributed every lot reports 63 lots and 11,590 rejected
+    pieces."""
     rows, _ = defects_rows()
     assert rows and "SUP-3155" in rows, "no SUP-3155 row in defect_rates.csv"
     lots, rejected = as_float(rows["SUP-3155"][1]), as_float(rows["SUP-3155"][3])
@@ -827,17 +885,64 @@ def test_sup3155_rate_carries_every_attributed_lot():
                                           gold["lots"], gold["rejected"]))
 
 
-def test_sup4077_volume_terms_applied_at_frozen_demand():
-    """At the frozen requirement SUP-4077's buy sits below its 520,000-piece
+def test_buy_quantity_carries_only_the_scrapped_share():
+    """A rejected piece costs Cadence a piece only where Cadence scraps it.
+    Pieces returned to the seller against an authorisation are replaced at the
+    seller's cost inside the contract year and are not invoiced again (clause
+    5.4 of every term sheet), so the buy is grossed up for the scrapped share,
+    not for every reject. SUP-1042 returned 2,572 of its 3,276 rejected pieces
+    and SUP-4077 only 244 of 4,368, so the two readings are 494,936 against
+    502,139 pieces for SUP-1042 and 504,431 against 505,124 for SUP-4077 - and
+    the award turns on the difference."""
+    rows, _ = costs_rows()
+    assert rows, "no parsable rows in supplier_costs.csv"
+    for code in (AWARD, RUNNER_UP):
+        assert code in rows, "row for %s missing" % code
+        got = as_float(rows[code][3])
+        assert got is not None and is_whole(got), (
+            "%s units_to_purchase is %r, expected a whole number of pieces"
+            % (code, rows[code][3]))
+        gold = GOLD_UNITS[code]
+        assert int(round(got)) == gold, (
+            "%s units_to_purchase is %s, expected %d: %d good units grossed up "
+            "for the %.3f%% of inspected pieces Cadence scrapped, not for the "
+            "%.3f%% it rejected"
+            % (code, rows[code][3], gold, GOOD_UNITS,
+               100.0 * GOLD_DEFECTS[code]["scrapped"] / GOLD_DEFECTS[code]["units"],
+               GOLD_DEFECTS[code]["rate"]))
+
+
+def test_disposal_charged_on_the_scrapped_pieces_only():
+    """Section 5 of the finance policy charges USD 1.25 per piece scrapped at
+    incoming inspection, and says pieces that leave on a return authorisation
+    carry no disposal charge. The four disposal amounts therefore fall out of
+    the contract-year requirement and the scrapped share together, and no other
+    reading of either produces them."""
+    by = buildup_by_supplier()
+    assert by, "no parsable rows in cost_buildup.csv"
+    missing = []
+    for code, value in sorted(GOLD_DISPOSAL.items()):
+        amounts = [a for _, a in by.get(code, []) if a is not None]
+        if not any(abs(a - value) <= 0.005 + 1e-9 for a in amounts):
+            missing.append("%s (USD %.2f)" % (code, value))
+    assert not missing, (
+        "cost_buildup.csv charges no disposal element of the amount the "
+        "scrapped pieces come to, for: %s. Disposal is USD 1.25 on the pieces "
+        "Cadence scraps, not on every rejected piece" % "; ".join(missing))
+
+
+def test_sup4077_volume_terms_applied_at_contract_year_demand():
+    """Over the contract year SUP-4077's buy sits below its 520,000-piece
     threshold, so its rebate is not earned and its shortfall charge is owed.
-    The October plan cycle, the subtotal rows or an unattributed reject rate
-    push the buy past the threshold and the total drops by USD 47,000."""
+    The calendar-2026 window, the untrimmed fifteen-month horizon, the
+    subtotal rows and the October plan cycle each push the buy past the
+    threshold, and the total then drops by about USD 43,000."""
     rows, _ = costs_rows()
     assert rows and RUNNER_UP in rows, "no %s row in supplier_costs.csv" % RUNNER_UP
     units, total = as_float(rows[RUNNER_UP][3]), as_float(rows[RUNNER_UP][4])
     assert units is not None and total is not None, "%s figures not numeric" % RUNNER_UP
     assert GOOD_UNITS < units < REBATE_THRESHOLD_4077, (
-        "%s units_to_purchase is %s; at the frozen requirement the buy is "
+        "%s units_to_purchase is %s; over the contract year the buy is "
         "%d pieces, below the %d-piece rebate threshold"
         % (RUNNER_UP, rows[RUNNER_UP][3], GOLD_UNITS[RUNNER_UP], REBATE_THRESHOLD_4077))
     assert at_precision(total, GOLD_TOTAL[RUNNER_UP], DP_TOTAL), (
@@ -954,12 +1059,49 @@ def test_cost_buildup_sums_to_the_filed_total():
             % (code, total, filed))
 
 
-def test_cost_buildup_charges_the_policy_elements():
-    """The shipped finance policy puts a working-capital value on payment terms
-    (section 3) and a disposal cost on every rejected piece (section 5), and the
-    volume commitment in SUP-4077's offer charges a shortfall. Any correct
-    build-up carries those amounts; the labels are the attempt's own, so only
-    the amounts are matched."""
+def test_cost_buildup_material_correct():
+    """The material line is the purchase quantity at the offered price restated
+    in US dollars per single piece at the mandated planning rates."""
+    by = buildup_by_supplier()
+    assert by, "no parsable rows in cost_buildup.csv"
+    missing = []
+    for code, value in sorted(GOLD_MATERIAL.items()):
+        amounts = [a for _, a in by.get(code, []) if a is not None]
+        if not any(abs(a - value) <= 0.005 + 1e-9 for a in amounts):
+            missing.append("%s (USD %.2f)" % (code, value))
+    assert not missing, (
+        "cost_buildup.csv charges no element of the material amount for: %s"
+        % "; ".join(missing))
+
+
+def test_cost_buildup_freight_rebate_and_shortfall_correct():
+    """Two offers are FCA and carry the lane tariff plus brokerage on twelve
+    shipments; two are DDP and carry none. SUP-2318's rebate is rated band by
+    band rather than re-rating the year at 3.0%, and SUP-4077 owes the clause
+    4.1 shortfall charge because the buy misses its 520,000-piece commitment.
+    The labels are the attempt's own, so only the amounts are matched."""
+    by = buildup_by_supplier()
+    assert by, "no parsable rows in cost_buildup.csv"
+    wanted = {code: [("inbound freight", v)] for code, v in GOLD_FREIGHT.items()}
+    wanted.setdefault("SUP-2318", []).append(("banded volume rebate", GOLD_REBATE_2318))
+    wanted.setdefault("SUP-4077", []).append(("volume shortfall charge", GOLD_SHORTFALL_4077))
+    missing = []
+    for code, items in sorted(wanted.items()):
+        amounts = [a for _, a in by.get(code, []) if a is not None]
+        for label, value in items:
+            if not any(abs(a - value) <= 0.005 + 1e-9 for a in amounts):
+                missing.append("%s %s (USD %.2f)" % (code, label, value))
+    assert not missing, (
+        "cost_buildup.csv charges no element of that amount for: %s"
+        % "; ".join(missing))
+
+
+def test_cost_buildup_charges_the_working_capital_value():
+    """Section 3 of the shipped finance policy values payment terms against a
+    Net 30 baseline at the cost of capital. Any correct build-up carries that
+    amount for the three suppliers whose terms are not Net 30; the labels are
+    the attempt's own, so only the amounts are matched. An attempt that never
+    modelled working capital has no row of that size."""
     by = buildup_by_supplier()
     assert by, "no parsable rows in cost_buildup.csv"
     missing = []
@@ -971,6 +1113,41 @@ def test_cost_buildup_charges_the_policy_elements():
     assert not missing, (
         "cost_buildup.csv charges no element of that amount for: %s"
         % "; ".join(missing))
+
+
+def test_memo_states_the_contract_year_window():
+    """instruction.md asks `## Cost Comparison` for the requirement, which part
+    of the demand data it came from and what period it covers. The offers run
+    1 April 2026 to 31 March 2027 and the cube dump is a rolling fifteen-month
+    horizon, so the period is a statement the memo has to make."""
+    body = section("Cost Comparison")
+    assert body.strip(), "## Cost Comparison section missing or empty"
+    assert re.search(CONTRACT_WINDOW_FROM, body, re.IGNORECASE), (
+        "## Cost Comparison does not say the FY2026 requirement covers a "
+        "period starting April 2026")
+    assert re.search(CONTRACT_WINDOW_TO, body, re.IGNORECASE), (
+        "## Cost Comparison does not say the FY2026 requirement covers a "
+        "period ending March 2027")
+
+
+def test_memo_reports_the_reject_disposition_split():
+    """instruction.md asks `## Data Quality and Exclusions` which inspection
+    records were counted towards the reject rates and which were set aside,
+    with the reason. The pieces returned to the seller and replaced free of
+    charge are rejects that are not a loss, and only an attempt that separated
+    them has the figure: 5,565 of the 21,434 rejected pieces went back, leaving
+    15,869 scrapped."""
+    body = section("Data Quality and Exclusions")
+    assert body.strip(), "## Data Quality and Exclusions section missing or empty"
+    tied = [u for u in statements(body)
+            if re.search(DISPOSITION_WORDS, u, re.IGNORECASE)
+            and (states_count(u, RETURNED_TOTAL) or states_count(u, SCRAPPED_TOTAL))]
+    assert tied, (
+        "## Data Quality and Exclusions never reports how the rejected pieces "
+        "were dispositioned: of %d pieces rejected at incoming inspection %d "
+        "went back to the seller on a return authorisation and %d were "
+        "scrapped, and only the scrapped pieces are a loss the purchase "
+        "quantity carries" % (REJECTED_TOTAL, RETURNED_TOTAL, SCRAPPED_TOTAL))
 
 
 def test_memo_flags_non_candidate_supplier():
