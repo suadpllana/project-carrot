@@ -1,7 +1,7 @@
 [
   {
     "item": 1,
-    "weight": 20,
+    "weight": 34,
     "criterion": "The `## Recommendation` section of recommendation.md names Meridian Precision Works, LLC (SUP-1042) as the single supplier awarded the FY2026 SP-40 contract.",
     "category": "recommend",
     "verification_type": "text",
@@ -12,7 +12,7 @@
   },
   {
     "item": 2,
-    "weight": 14,
+    "weight": 24,
     "criterion": "supplier_costs.csv assigns rank 1 to SUP-1042 and rank 2 to SUP-4077.",
     "category": "recommend",
     "verification_type": "file_structure",
@@ -23,7 +23,7 @@
   },
   {
     "item": 3,
-    "weight": 14,
+    "weight": 24,
     "criterion": "The `## Recommendation` section of recommendation.md states the FY2026 purchase quantity to be contracted with the awarded supplier as 494,936 pieces.",
     "category": "recommend",
     "verification_type": "text",
@@ -34,7 +34,7 @@
   },
   {
     "item": 4,
-    "weight": 14,
+    "weight": 24,
     "criterion": "The `## Recommendation` section of recommendation.md states the awarded supplier's FY2026 total cost as USD 950,828.57, to the cent or rounded to the nearest whole dollar.",
     "category": "recommend",
     "verification_type": "text",
@@ -45,7 +45,7 @@
   },
   {
     "item": 5,
-    "weight": 8,
+    "weight": 14,
     "criterion": "The `## Recommendation` section of recommendation.md states that the awarded supplier beats the second-ranked offer by USD 2,374.70 over FY2026, to the cent or rounded to the nearest whole dollar.",
     "category": "recommend",
     "verification_type": "text",
@@ -376,7 +376,7 @@
   },
   {
     "item": 38,
-    "weight": 1,
+    "weight": 2,
     "criterion": "The output directory contains all four required files: supplier_costs.csv, defect_rates.csv, cost_buildup.csv and recommendation.md.",
     "category": "instruction_following",
     "verification_type": "file_structure",
@@ -389,7 +389,7 @@
   },
   {
     "item": 39,
-    "weight": 1,
+    "weight": 2,
     "criterion": "The first line of supplier_costs.csv is exactly `supplier_code,supplier_name,quoted_price_usd_per_unit,units_to_purchase,total_fy2026_cost_usd,cost_per_good_unit_usd,rank`.",
     "category": "instruction_following",
     "verification_type": "file_structure",
@@ -399,7 +399,7 @@
   },
   {
     "item": 40,
-    "weight": 1,
+    "weight": 2,
     "criterion": "The first line of defect_rates.csv is exactly `supplier_code,lots_inspected,units_inspected,units_rejected,reject_rate_pct`.",
     "category": "instruction_following",
     "verification_type": "file_structure",
@@ -409,7 +409,7 @@
   },
   {
     "item": 41,
-    "weight": 1,
+    "weight": 2,
     "criterion": "cost_buildup.csv has the header `supplier_code,cost_element,amount_usd`, one row per element charged with a lower-case label of at most 32 characters, rows sorted by supplier_code then cost_element, and no row carrying the total itself.",
     "category": "instruction_following",
     "verification_type": "file_structure",
@@ -419,7 +419,7 @@
   },
   {
     "item": 42,
-    "weight": 1,
+    "weight": 2,
     "criterion": "For each supplier the amount_usd values in cost_buildup.csv add up to that supplier's total_fy2026_cost_usd in supplier_costs.csv, within the rounding of the elements themselves.",
     "category": "instruction_following",
     "verification_type": "file_structure",
@@ -430,7 +430,7 @@
   },
   {
     "item": 43,
-    "weight": 1,
+    "weight": 2,
     "criterion": "recommendation.md contains the five level-2 headings `## Recommendation`, `## Cost Comparison`, `## Basis of Decision`, `## Data Quality and Exclusions` and `## Risks and Sensitivities`, spelled exactly that way, in that order, each with at least 30 words of content.",
     "category": "instruction_following",
     "verification_type": "text",
@@ -440,7 +440,7 @@
   },
   {
     "item": 44,
-    "weight": 1,
+    "weight": 2,
     "criterion": "supplier_costs.csv and defect_rates.csv each contain exactly four data rows, supplier_costs.csv ordered by rank ascending and defect_rates.csv by supplier_code ascending, and the supplier names are the supplier master's legal names in full.",
     "category": "instruction_following",
     "verification_type": "file_structure",
@@ -451,7 +451,7 @@
   },
   {
     "item": 45,
-    "weight": 1,
+    "weight": 2,
     "criterion": "Numeric fields in the three CSVs carry no currency symbols, thousands separators or percent signs, any text field containing a comma is double-quoted, and each field is reported to the decimal places the brief fixes for it.",
     "category": "instruction_following",
     "verification_type": "file_structure",
@@ -463,7 +463,7 @@
   },
   {
     "item": 46,
-    "weight": 1,
+    "weight": 2,
     "criterion": "recommendation.md awards the full FY2026 volume to one supplier and does not propose a split award, dual sourcing, a staged award or a deferral.",
     "category": "instruction_following",
     "verification_type": "text",
@@ -473,7 +473,7 @@
   },
   {
     "item": 47,
-    "weight": 1,
+    "weight": 2,
     "criterion": "Every figure recommendation.md repeats from the three CSVs agrees with the value filed there, to the cent or rounded to the nearest whole dollar, and every monetary figure in the memo is stated in US dollars and marked as such.",
     "category": "instruction_following",
     "verification_type": "text",
@@ -486,7 +486,7 @@
   },
   {
     "item": 48,
-    "weight": 1,
+    "weight": 2,
     "criterion": "Every figure in the four deliverables is derived from the files supplied in /workspace/data, with no required field left blank or marked \"TBD\".",
     "category": "instruction_following",
     "verification_type": "text",

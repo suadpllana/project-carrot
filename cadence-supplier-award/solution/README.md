@@ -30,8 +30,14 @@ Never staged into the environment image; the attempt cannot see any of this.
     tables quoted in `task_card.md`.
   - `make_gold_patch.py` — regenerates `gold.patch`.
 
-`solve.py` runs on the environment image as built: it needs only the standard
-library plus `openpyxl`, which the Dockerfile preinstalls.
+`solve.py` and `verify_design.py` need only the CPython standard library - no
+openpyxl, no pandas, no numpy. The supplier master is read straight out of the
+`.xlsx` zip with `zipfile` and `xml.etree`. The environment image still
+preinstalls pandas and openpyxl for the attempt's own use; the reference
+solution deliberately does not rely on them, so a review sandbox that installs
+nothing can still execute it. `generate_data.py` is the one exception: it
+*writes* the workbook and needs openpyxl, and it is an authoring tool that no
+grading or review path runs.
 
 ## Ground truth
 

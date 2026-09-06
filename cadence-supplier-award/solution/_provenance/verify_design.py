@@ -12,7 +12,7 @@ them with tests/test.sh - the same verifier the platform runs. It prints the
 on, the test-side reward, and how many test-side decision points survive.
 
 Run from anywhere:  python solution/_provenance/verify_design.py
-Needs openpyxl (the environment image preinstalls it).
+Standard library only, so a review sandbox that installs nothing can run it.
 """
 from __future__ import annotations
 
@@ -21,13 +21,18 @@ import importlib.util
 import json
 import math
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 
-import openpyxl
+# importing solve.py and running the checks would otherwise leave
+# __pycache__ directories inside the task tree, and a stray .pyc in the
+# upload archive has had an intake refuse the package before now
+sys.dont_write_bytecode = True
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
@@ -46,10 +51,37 @@ def rows_of(path):
         return list(csv.DictReader(fh))
 
 
+def sheet_rows(path, sheet_name):
+    """Rows of one worksheet, read straight out of the .xlsx zip.
+
+    Deliberately neither openpyxl nor solve.py's reader: this file has to
+    reach the ground truth by its own route, and it has to run in a review
+    sandbox that installs nothing. The sheets it reads are dense grids, so
+    text nodes in document order are the row; a ragged row would break that
+    assumption, so it is asserted rather than assumed.
+    """
+    with zipfile.ZipFile(path) as zf:
+        book = zf.read("xl/workbook.xml").decode("utf-8")
+        rels = zf.read("xl/_rels/workbook.xml.rels").decode("utf-8")
+        rid = dict(re.findall(r'<sheet[^>]*name="([^"]*)"[^>]*r:id="([^"]*)"',
+                              book))[sheet_name]
+        target = {i: t for t, i in re.findall(
+            r'<Relationship[^>]*Target="([^"]*)"[^>]*Id="([^"]*)"', rels)}
+        part = target[rid].lstrip("/")
+        if not part.startswith("xl/"):
+            part = "xl/" + part
+        xml = zf.read(part).decode("utf-8")
+    rows = [re.findall(r"<t[^>]*>(.*?)</t>", row, re.S)
+            for row in re.findall(r"<row[^>]*>(.*?)</row>", xml, re.S)]
+    widths = {len(r) for r in rows}
+    assert len(widths) == 1, "ragged sheet %s: widths %s" % (sheet_name, sorted(widths))
+    return rows
+
+
 def rederive():
-    wb = openpyxl.load_workbook(DATA / "master" / "supplier_master.xlsx", data_only=True)
-    alias = {str(r[0]).strip().casefold(): str(r[1]).strip()
-             for r in wb["name_aliases"].iter_rows(min_row=2, values_only=True) if r and r[0]}
+    alias = {r[0].strip().casefold(): r[1].strip()
+             for r in sheet_rows(DATA / "master" / "supplier_master.xlsx",
+                                 "name_aliases")[1:] if r and r[0]}
     po_sup = {r["po_id"]: alias.get(r["supplier_name"].strip().casefold())
               for r in rows_of(DATA / "purchasing" / "purchase_orders_2025.csv")}
     xwalk = {r["erp_po_number"]: r["mart_po_id"]
@@ -208,6 +240,30 @@ PROFILES = [
      dict(demand_kw=dict(window="horizon"))),
 ]
 
+# The spec-only path: an attempt that does everything a SHIPPED DOCUMENT tells
+# it to and forms none of the judgements no document makes for it. Mutation
+# testing cannot find this, because a mutation already assumes the analysis is
+# happening; only writing the document-following attempt and scoring it says
+# whether the package can be solved by reading rather than analysing.
+#
+# It is deliberately GENEROUS, so the number it produces is an upper bound on
+# the spec-only path: it is given both reconciliations a document states as a
+# fact - the ERP reference extract carries both number series (CHG-2025-0417),
+# and the QMS supplier field is keyed by hand and unvalidated, so lots are
+# attributed through the receipt - and it is given the November cycle and the
+# dedupe, which the planning note and QP-07 section 2 respectively describe.
+# What it does not do is the three things no document decides for it: which
+# months of the cube the contract covers, which inspection records are the
+# reject population, and which rejected pieces are actually a loss.
+SPEC_ONLY = [
+    ("spec-only: every documented step, no judgement of its own",
+     dict(defect_kw=dict(points=None), demand_kw=dict(window="horizon"),
+          build_kw=dict(loss="all"))),
+    ("spec-only, but reads the cube over calendar 2026",
+     dict(defect_kw=dict(points=None), demand_kw=dict(window="calendar"),
+          build_kw=dict(loss="all"))),
+]
+
 
 def sweep(solve):
     weights = json.loads((TESTS / "test_weights.json").read_text())
@@ -217,11 +273,20 @@ def sweep(solve):
     names, alias = solve.load_master()
     po = solve.load_po_supplier(alias)
     xwalk = solve.load_crosswalk()
-    lots = solve.load_lot_supplier(po, xwalk)
     freight = solve.load_freight()
-    stats = solve.source_statistics(lots, xwalk, alias, solve.load_demand(), freight)
 
     def variant(label, *, lot_kw=None, defect_kw=None, demand_kw=None, build_kw=None):
+        """One attempt, wrong in exactly the named way and consistent everywhere else.
+
+        The deliverables all come out of the SAME mutated run: the ranking is
+        the ranking this attempt reached, the quantities are the ones it sized,
+        and the memo describes the analysis it actually did rather than the
+        reference one. A simulated attempt that files a correct memo beside a
+        wrong table collects credit no real attempt could, and the number this
+        harness exists to produce is what a wrong path really scores.
+        """
+        raw_kw = dict(lot_kw=lot_kw, defect_kw=defect_kw,
+                      demand_kw=demand_kw, build_kw=build_kw)
         build_kw = dict(build_kw or {})
         if build_kw.get("fx") == "avg":
             build_kw["fx"] = solve.load_fx_2025_average()
@@ -229,9 +294,12 @@ def sweep(solve):
         defects = solve.load_defect_rates(lot_map, alias, **(defect_kw or {}))
         good = solve.load_demand(**(demand_kw or {}))
         rows, order = solve.build(good, defects, freight, **build_kw)
+        # this attempt's own view of the populations, not the reference's
+        stats = solve.source_statistics(lot_map, xwalk, alias, good, freight)
         out = Path(tempfile.mkdtemp(prefix="cadence-out-"))
         solve.OUT = out
-        solve.write_outputs(names, defects, rows, order, good, freight, stats)
+        solve.write_outputs(names, defects, rows, order, good, freight, stats,
+                            choices=raw_kw)
         reward, passed = run_verifier(out)
         shutil.rmtree(out, ignore_errors=True)
         dec = sum(w for n, w in decision.items() if n in passed)
@@ -250,7 +318,224 @@ def sweep(solve):
     table("Single omission", results)
     combos = [variant(label, **kw) for label, kw in PROFILES]
     table("Attempt profile", combos)
-    return results + combos
+    spec = [variant(label, **kw) for label, kw in SPEC_ONLY]
+    table("Spec-only path", spec)
+    return results + combos + spec
+
+
+# ===========================================================================
+# Part 3 - negative mutations: a CORRECT answer, written down differently
+# ===========================================================================
+# "Does a wrong answer get caught" is only half the harness. The other half is
+# "does a right answer still pass once it is written the way some other
+# competent attempt would write it" - a check that matches a literal string, a
+# single row or one spelling fails here and nowhere else.
+def rewrap(text, width=34):
+    """Hard-wrap the prose of a markdown document, leaving tables alone."""
+    out = []
+    for line in text.split("\n"):
+        stripped = line.lstrip()
+        if not stripped or stripped.startswith(("|", "#")):
+            out.append(line)
+            continue
+        words, cur = stripped.split(), ""
+        for word in words:
+            if cur and len(cur) + 1 + len(word) > width:
+                out.append(cur)
+                cur = word
+            else:
+                cur = (cur + " " + word).strip()
+        out.append(cur)
+    return "\n".join(out)
+
+
+def reformat(out_dir, kind, solve):
+    """Rewrite a correct deliverable set the way another attempt might."""
+    memo = out_dir / "recommendation.md"
+    if kind == "memo re-wrapped at 34 columns":
+        memo.write_text(rewrap(memo.read_text(encoding="utf-8")), encoding="utf-8")
+    elif kind == "memo money as $1,234.56 with separators":
+        text = re.sub(r"USD ([\d,]+\.\d{2})", r"$\1", memo.read_text(encoding="utf-8"))
+        text = re.sub(r"\$(\d{4,})(\.\d{2})",
+                      lambda m: "$" + format(int(m.group(1)), ",") + m.group(2), text)
+        memo.write_text(text, encoding="utf-8")
+    elif kind == "memo totals rounded to whole dollars":
+        # instruction.md allows the memo's figures to the cent OR to the dollar
+        text = re.sub(r"USD (\d+)\.(\d{2})",
+                      lambda m: "USD " + format(int(m.group(1)) + (1 if int(m.group(2)) >= 50 else 0)),
+                      memo.read_text(encoding="utf-8"))
+        memo.write_text(text, encoding="utf-8")
+    elif kind == "CSVs with CRLF line endings":
+        for name in ("supplier_costs.csv", "defect_rates.csv", "cost_buildup.csv"):
+            path = out_dir / name
+            path.write_bytes(path.read_text(encoding="utf-8").replace("\n", "\r\n")
+                             .encode("utf-8"))
+    elif kind == "supplier names in another house style":
+        for name in ("supplier_costs.csv", "recommendation.md"):
+            path = out_dir / name
+            text = path.read_text(encoding="utf-8")
+            for before, after in (("Meridian Precision Works, LLC", "Meridian Precision Works LLC"),
+                                  ("Talleres Nortenos, S.A. de C.V.", "Talleres Nortenos SA de CV"),
+                                  ("Rheinwerk Feinmechanik GmbH", "Rheinwerk Feinmechanik G.m.b.H."),
+                                  ("Brackenridge Tooling Ltd", "Brackenridge Tooling Ltd.")):
+                text = text.replace(before, after)
+            path.write_text(text, encoding="utf-8")
+    elif kind == "build-up itemised into finer elements":
+        rows = list(csv.reader((out_dir / "cost_buildup.csv")
+                               .read_text(encoding="utf-8").splitlines()))
+        header, body = rows[0], rows[1:]
+        freight = solve.load_freight()
+        split = []
+        costs = list(csv.reader((out_dir / "supplier_costs.csv")
+                                .read_text(encoding="utf-8").splitlines()))[1:]
+        bought = {r[0]: float(r[3]) for r in costs if r}
+        for code, element, amount in body:
+            spec = solve.CONTRACTS[code]
+            if element == "inbound_freight" and float(amount):
+                units = bought[code]
+                per_k, brokerage = freight[spec["freight_lane"]]
+                split.append([code, "customs_brokerage",
+                              "{:.2f}".format(spec["shipments_per_year"] * brokerage)])
+                split.append([code, "freight_tariff",
+                              "{:.2f}".format(units / 1000.0 * per_k)])
+            else:
+                split.append([code, element, amount])
+        split.sort(key=lambda r: (r[0], r[1]))
+        with open(out_dir / "cost_buildup.csv", "w", encoding="utf-8", newline="") as fh:
+            w = csv.writer(fh, lineterminator="\n")
+            w.writerow(header)
+            w.writerows(split)
+    else:
+        raise AssertionError("unknown reformat %r" % kind)
+
+
+REFORMATS = [
+    "memo re-wrapped at 34 columns",
+    "memo money as $1,234.56 with separators",
+    "memo totals rounded to whole dollars",
+    "CSVs with CRLF line endings",
+    "supplier names in another house style",
+    "build-up itemised into finer elements",
+]
+
+
+def floor_probe(solve):
+    """What the SHAPE alone banks: a well-formed answer with no analysis in it.
+
+    Every file has the right header, the right rows, the right precision and
+    the master's legal names; the memo has all five sections, names the
+    non-candidate supplier, covers all four offers and quotes figures that
+    agree with its own CSVs. Every number behind it is naive - prices as the
+    clauses quote them without restating currency or unit of measure, the whole
+    fifteen-month cube as the requirement, no gross-up, no freight, no rebate,
+    no terms, no disposal - so nothing analytical is right. This is the free
+    credit a wrong attempt harvests, and the number the task card quotes.
+    """
+    names, _ = solve.load_master()
+    good = solve.load_demand(window="horizon")
+    naive = {}
+    for code in CANDIDATES:
+        spec = solve.CONTRACTS[code]
+        price = spec["price"]                      # not restated: the trap
+        total = good * price
+        naive[code] = dict(price=price, units=good, total=total,
+                           per_good=total / good)
+    order = sorted(CANDIDATES, key=lambda c: naive[c]["price"])
+
+    out = Path(tempfile.mkdtemp(prefix="cadence-floor-"))
+    with open(out / "supplier_costs.csv", "w", encoding="utf-8", newline="") as fh:
+        w = csv.writer(fh, lineterminator="\n")
+        w.writerow(["supplier_code", "supplier_name", "quoted_price_usd_per_unit",
+                    "units_to_purchase", "total_fy2026_cost_usd",
+                    "cost_per_good_unit_usd", "rank"])
+        for rank, code in enumerate(order, start=1):
+            r = naive[code]
+            w.writerow([code, names[code], "{:.4f}".format(r["price"]), r["units"],
+                        "{:.2f}".format(r["total"]), "{:.4f}".format(r["per_good"]),
+                        rank])
+    with open(out / "defect_rates.csv", "w", encoding="utf-8", newline="\n") as fh:
+        fh.write("supplier_code,lots_inspected,units_inspected,units_rejected,"
+                 "reject_rate_pct\n")
+        for code in sorted(CANDIDATES):
+            fh.write("%s,50,150000,3000,2.000\n" % code)
+    with open(out / "cost_buildup.csv", "w", encoding="utf-8", newline="") as fh:
+        w = csv.writer(fh, lineterminator="\n")
+        w.writerow(["supplier_code", "cost_element", "amount_usd"])
+        for code in sorted(CANDIDATES):
+            w.writerow([code, "material", "{:.2f}".format(naive[code]["total"])])
+
+    win = order[0]
+    margin = naive[order[1]]["total"] - naive[win]["total"]
+    memo = ["# FY2026 SP-40 valve-seat sourcing award\n"]
+    memo.append("## Recommendation\n")
+    memo.append("Award the FY2026 SP-40 contract to **%s (%s)**, contracting "
+                "%d pieces for the year at a total FY2026 cost of USD %.2f. "
+                "That is USD %.2f less over the year than the second-ranked "
+                "offer, and it is the lowest quoted price of the four offers "
+                "returned to us for this part.\n"
+                % (names[win], win, naive[win]["units"], naive[win]["total"],
+                   margin))
+    memo.append("## Cost Comparison\n")
+    memo.append("All four offers were compared over the FY2026 requirement of "
+                "%d SP-40 pieces taken from the planning cube extract for this "
+                "part, covering the months the extract carries. The totals "
+                "are: %s. Ranking follows the total cost over that volume.\n"
+                % (good, ", ".join("%s USD %.2f" % (c, naive[c]["total"])
+                                   for c in order)))
+    memo.append("## Basis of Decision\n")
+    memo.append("The ranking is driven by quoted price across the four offers, "
+                "which is the largest single component of the cost of this "
+                "part. %s loses on price, %s loses on price, and %s loses on "
+                "price against the recommended supplier; each of the three "
+                "quotes more per piece over the contract volume than the offer "
+                "we are recommending here.\n"
+                % (order[1], order[2], order[3]))
+    memo.append("## Data Quality and Exclusions\n")
+    memo.append("SUP-9001, Old Harbor Machine Company, appears throughout the "
+                "2025 purchasing and inspection data but returned no FY2026 "
+                "offer, so it is not a candidate and is excluded. Cancelled "
+                "purchase orders were excluded because they brought in no "
+                "stock. SP-22 rows were excluded because they are a different "
+                "part on a separate agreement. Source inspection records were "
+                "counted in the reject rates because they are inspections of "
+                "the same part on the same log.\n")
+    memo.append("## Risks and Sensitivities\n")
+    memo.append("The recommendation rests on quoted price, so it would be "
+                "overturned if the recommended supplier's price rose by more "
+                "than USD %.2f over the contract year, or if quality "
+                "performance moved materially against it. Concentrating the "
+                "part on one supplier also removes the current split and "
+                "leaves no qualified running alternative.\n" % margin)
+    (out / "recommendation.md").write_text("\n".join(memo) + "\n", encoding="utf-8")
+
+    reward, passed = run_verifier(out)
+    shutil.rmtree(out, ignore_errors=True)
+    return reward, passed
+
+
+def negative_sweep(solve):
+    """Every reformat of a CORRECT answer must still score 1.000."""
+    names, alias = solve.load_master()
+    lots = solve.load_lot_supplier(solve.load_po_supplier(alias), solve.load_crosswalk())
+    defects = solve.load_defect_rates(lots, alias)
+    good, freight = solve.load_demand(), solve.load_freight()
+    rows, order = solve.build(good, defects, freight)
+    stats = solve.source_statistics(lots, solve.load_crosswalk(), alias, good, freight)
+
+    print("\n| Correct answer, written differently | Tests | Verdict |")
+    print("| --- | --- | --- |")
+    bad = []
+    for kind in REFORMATS:
+        out = Path(tempfile.mkdtemp(prefix="cadence-neg-"))
+        solve.OUT = out
+        solve.write_outputs(names, defects, rows, order, good, freight, stats)
+        reformat(out, kind, solve)
+        reward, _ = run_verifier(out)
+        shutil.rmtree(out, ignore_errors=True)
+        print("| %s | %.3f | %s |" % (kind, reward, "ok" if reward == 1.0 else "REGRESSION"))
+        if reward != 1.0:
+            bad.append((kind, reward))
+    return bad
 
 
 def main():
@@ -293,6 +578,29 @@ def main():
     print("\n%d of %d omissions land on a different supplier; worst non-flipping "
           "omission scores %.3f"
           % (len(flips), len(results) - 1, max(others) if others else 0.0))
+
+    # f, for the calibration arithmetic: mean ~ q**k + (1 - q**k) * f, where q
+    # is the chance a strong attempt clears one non-checklist layer and k is
+    # the number of independently decisive layers. f is what a wrong decision
+    # can still bank, so it is the ceiling every sweep is measured against.
+    wrong = [r["reward"] for r in results if r["lands"] != ref["lands"]]
+    if wrong:
+        f_max, f_mean = max(wrong), sum(wrong) / len(wrong)
+        print("f (wrong-decision score cap): max %.3f, mean %.3f over %d paths"
+              % (f_max, f_mean, len(wrong)))
+        for target, ceiling in (("strong", 0.60), ("weak", 0.35)):
+            room = (ceiling - f_mean) / (1 - f_mean) if f_mean < 1 else 0.0
+            print("  %-6s ceiling %.2f needs q**k <= %.3f  (k=6: q <= %.3f)"
+                  % (target, ceiling, room, room ** (1 / 6.0)))
+
+    floor, floor_passed = floor_probe(solve)
+    print("structural floor (well-formed, no analysis): %.3f  [%s]"
+          % (floor, ", ".join(sorted(floor_passed)) or "nothing"))
+
+    print("\nnegative sweep: a correct answer, written down differently")
+    bad = negative_sweep(solve)
+    assert not bad, ("a correct answer scored below 1.000 after reformatting: %s"
+                     % "; ".join("%s -> %.3f" % b for b in bad))
 
 
 if __name__ == "__main__":

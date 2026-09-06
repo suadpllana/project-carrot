@@ -21,9 +21,10 @@ import csv
 import json
 import math
 import os
+import re
+import zipfile
 from pathlib import Path
-
-import openpyxl
+from xml.etree import ElementTree
 
 DATA = Path(os.environ.get("CADENCE_DATA", "/workspace/data"))
 OUT = Path(os.environ.get("CADENCE_OUT", "/workspace/output"))
@@ -86,13 +87,78 @@ CONTRACTS = {
 # ---------------------------------------------------------------------------
 # Inputs
 # ---------------------------------------------------------------------------
+# --- XLSX reading, standard library only -----------------------------------
+# The supplier master is the one shipped input that is not plain text, and an
+# .xlsx is a zip of XML parts, so the standard library reads it: no openpyxl,
+# no pandas. The attempt's image preinstalls both and it may use them freely;
+# this reference solution deliberately does not, so that it executes wherever
+# CPython does and a review sandbox can always run it.
+_MAIN = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
+_DOC_REL = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+
+
+def _column_index(ref, fallback):
+    """`C7` -> 2. The column letters of a cell reference, zero-based."""
+    m = re.match(r"([A-Z]+)", ref or "")
+    if not m:
+        return fallback
+    n = 0
+    for ch in m.group(1):
+        n = n * 26 + (ord(ch) - 64)
+    return n - 1
+
+
+def read_xlsx(path):
+    """{sheet name: [[cell, ...], ...]}, blank cells as None.
+
+    Handles the two ways a writer stores text - inline `<is>` runs and the
+    shared-string table - and otherwise hands back the string the cell
+    carries, which is all this task needs from the master.
+    """
+    with zipfile.ZipFile(path) as zf:
+        def xml(name):
+            return ElementTree.fromstring(zf.read(name))
+
+        shared = []
+        if "xl/sharedStrings.xml" in zf.namelist():
+            for si in xml("xl/sharedStrings.xml"):
+                shared.append("".join(t.text or "" for t in si.iter(_MAIN + "t")))
+
+        target = {rel.get("Id"): rel.get("Target")
+                  for rel in xml("xl/_rels/workbook.xml.rels")}
+
+        sheets = {}
+        for sheet in xml("xl/workbook.xml").iter(_MAIN + "sheet"):
+            part = target[sheet.get(_DOC_REL + "id")].lstrip("/")
+            if not part.startswith("xl/"):
+                part = "xl/" + part
+            rows = []
+            for row in xml(part).iter(_MAIN + "row"):
+                cells = []
+                for cell in row.iter(_MAIN + "c"):
+                    idx = _column_index(cell.get("r"), len(cells))
+                    while len(cells) < idx:
+                        cells.append(None)
+                    if cell.get("t") == "inlineStr":
+                        value = "".join(t.text or "" for t in cell.iter(_MAIN + "t"))
+                    else:
+                        node = cell.find(_MAIN + "v")
+                        value = None if node is None else node.text
+                        if cell.get("t") == "s" and value is not None:
+                            value = shared[int(value)]
+                    cells.append(value)
+                rows.append(cells)
+            sheets[sheet.get("name")] = rows
+    return sheets
+
+
 def load_master():
-    wb = openpyxl.load_workbook(DATA / "master" / "supplier_master.xlsx", data_only=True)
+    book = read_xlsx(DATA / "master" / "supplier_master.xlsx")
     names, alias = {}, {}
-    for row in wb["suppliers"].iter_rows(min_row=2, values_only=True):
+    for row in book["suppliers"][1:]:            # row 1 is the header
         if row and row[0]:
             names[str(row[0]).strip()] = str(row[1]).strip()
-    for row in wb["name_aliases"].iter_rows(min_row=2, values_only=True):
+    for row in book["name_aliases"][1:]:
         if row and row[0]:
             alias[str(row[0]).strip().casefold()] = str(row[1]).strip()
     return names, alias
@@ -384,8 +450,51 @@ def money(x):
     return "{:.2f}".format(x + 0.0)
 
 
-def write_outputs(names, defects, rows, order, good_units, freight, source_stats):
+def analysis_notes(choices=None):
+    """What this run actually did, as the booleans the memo describes itself by.
+
+    The memo has to describe the run that produced the figures printed beside
+    it. The provenance harness re-runs this module with one analysis choice
+    changed at a time; a memo that claimed a correction its own run did not
+    make would hand the simulated attempt credit no real attempt could earn,
+    and the measured cost of a wrong path is the whole point of running it.
+    Defaults are the correct reading, so the reference memo is unchanged.
+    """
+    c = choices or {}
+    lot = c.get("lot_kw") or {}
+    defect = c.get("defect_kw") or {}
+    demand = c.get("demand_kw") or {}
+    build = c.get("build_kw") or {}
+    return dict(
+        incoming_only=defect.get("points", ("INCOMING",)) is not None,
+        by_receipt=defect.get("attribute_by", "receipt") == "receipt",
+        deduped=defect.get("keep", "first") != "none",
+        crosswalked=lot.get("use_crosswalk", True),
+        window=demand.get("window", "contract"),
+        cycle=demand.get("cycle", "frozen"),
+        totals_dropped=not demand.get("include_totals", False),
+        scrapped_only=build.get("loss", "scrap") == "scrap",
+        grossed_up=build.get("gross_up", True),
+    )
+
+
+# Per demand window: how the Cost Comparison names the period, how the header
+# dates it, and what to call it. Only the first is the contract year.
+WINDOW_PROSE = {
+    "contract": ("the contract year the four offers cover, April 2026 through "
+                 "March 2027", "contract year 1 April 2026 - 31 March 2027"),
+    "calendar": ("calendar 2026, January through December 2026",
+                 "calendar year 1 January 2026 - 31 December 2026"),
+    "horizon": ("the whole rolling fifteen-month cube horizon, January 2026 "
+                "through March 2027", "cube horizon January 2026 - March 2027"),
+}
+
+
+def write_outputs(names, defects, rows, order, good_units, freight, source_stats,
+                  choices=None):
     OUT.mkdir(parents=True, exist_ok=True)
+    did = analysis_notes(choices)
+    window_phrase, window_dates = WINDOW_PROSE[did["window"]]
 
     # legal names contain commas, so the text fields are RFC 4180 quoted
     with open(OUT / "supplier_costs.csv", "w", encoding="utf-8", newline="") as fh:
@@ -443,7 +552,7 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
     md.append("# FY2026 SP-40 valve-seat sourcing award\n")
     md.append("Prepared for the sourcing steering committee. All figures in US "
               "dollars at the mandated FY2026 planning rates, for the full "
-              "contract year 1 April 2026 - 31 March 2027.\n")
+              "{}.\n".format(window_dates))
 
     md.append("## Recommendation\n")
     md.append("Award the full FY2026 SP-40 volume to **{} ({})**, contracting "
@@ -460,18 +569,24 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
               "volume, as directed.\n")
 
     md.append("## Cost Comparison\n")
+    cycle_phrase = ("the frozen November S&OP cycle" if did["cycle"] == "frozen"
+                    else "the superseded October S&OP cycle")
     md.append("The FY2026 good-unit requirement worked to is **{:,} SP-40 "
-              "pieces** - the twelve monthly SP-40 rows of the frozen November "
-              "S&OP cycle that fall in the contract year the four offers "
-              "cover, April 2026 through March 2027. The cube dump is a "
-              "rolling fifteen-month horizon, so its January-March 2026 rows "
-              "sit before the contract year and are excluded; so are the "
-              "superseded October cycle, the `TOTAL` subtotal rows and every "
-              "SP-22 row. Read as calendar 2026 the same cycle gives {:,} "
-              "pieces and read whole it gives {:,}; neither is the period this "
-              "contract covers.\n".format(
-                  good_units, source_stats["calendar_units"],
-                  source_stats["horizon_units"]))
+              "pieces** - the monthly SP-40 rows of {} that fall in {}, with "
+              "the `TOTAL` subtotal rows {} and every SP-22 row excluded. "
+              "{}\n".format(
+                  good_units, cycle_phrase, window_phrase,
+                  "excluded" if did["totals_dropped"] else "counted in",
+                  ("The cube dump is a rolling fifteen-month horizon, so its "
+                   "January-March 2026 rows sit before the contract year and "
+                   "are excluded, as is the superseded October cycle. Read as "
+                   "calendar 2026 the same cycle gives {:,} pieces and read "
+                   "whole it gives {:,}; neither is the period this contract "
+                   "covers.".format(source_stats["calendar_units"],
+                                    source_stats["horizon_units"])
+                   if did["window"] == "contract" else
+                   "The dump is the cube's whole rolling fifteen-month horizon "
+                   "and is taken over that period as it stands.")))
     md.append("| supplier_code | supplier_name | quoted USD/piece | units to "
               "purchase | FY2026 total USD | USD per good unit | rank |")
     md.append("| --- | --- | --- | --- | --- | --- | --- |")
@@ -491,22 +606,35 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
             money(-r["rebate"]), money(r["shortfall"]), money(r["disposal"]),
             money(r["terms"]), money(r["total"])))
     md.append("")
-    md.append("Each purchase quantity follows from that requirement. A piece "
-              "rejected at incoming inspection costs Cadence a piece only "
-              "where Cadence scraps it: pieces returned to the seller on an "
-              "authorisation are replaced at the seller's cost inside the "
-              "contract year and are not invoiced again (clause 5.4 of every "
-              "term sheet). The buy is therefore the requirement grossed up "
-              "for the share of each supplier's inspected pieces that Cadence "
-              "actually scrapped in 2025 - {} - rounded up to the next whole "
-              "piece: {}. SUP-2318 is bought in whole 100-piece boxes (clause "
+    if not did["grossed_up"]:
+        basis = ("Each purchase quantity is the requirement itself: the buy is "
+                 "not grossed up for supplier quality losses. ")
+    elif did["scrapped_only"]:
+        basis = ("Each purchase quantity follows from that requirement. A "
+                 "piece rejected at incoming inspection costs Cadence a piece "
+                 "only where Cadence scraps it: pieces returned to the seller "
+                 "on an authorisation are replaced at the seller's cost inside "
+                 "the contract year and are not invoiced again (clause 5.4 of "
+                 "every term sheet). The buy is therefore the requirement "
+                 "grossed up for the share of each supplier's inspected pieces "
+                 "that Cadence actually scrapped in 2025 - {} - rounded up to "
+                 "the next whole piece: {}. ".format(
+                     ", ".join("{} {:.3f}%".format(c, 100 * rows[c]["loss_rate"])
+                               for c in sorted(CANDIDATES)),
+                     ", ".join("{} {:,}".format(c, rows[c]["units"])
+                               for c in sorted(CANDIDATES))))
+    else:
+        basis = ("Each purchase quantity follows from that requirement, "
+                 "grossed up for every piece each supplier had rejected at "
+                 "incoming inspection in 2025 - {} - rounded up to the next "
+                 "whole piece: {}. ".format(
+                     ", ".join("{} {:.3f}%".format(c, 100 * rows[c]["rate"])
+                               for c in sorted(CANDIDATES)),
+                     ", ".join("{} {:,}".format(c, rows[c]["units"])
+                               for c in sorted(CANDIDATES))))
+    md.append(basis + "SUP-2318 is bought in whole 100-piece boxes (clause "
               "1: partial boxes are not tendered), so its quantity is rounded "
-              "up to the next box, {:,} pieces.\n".format(
-                  ", ".join("{} {:.3f}%".format(c, 100 * rows[c]["loss_rate"])
-                            for c in sorted(CANDIDATES)),
-                  ", ".join("{} {:,}".format(c, rows[c]["units"])
-                            for c in sorted(CANDIDATES)),
-                  rows["SUP-2318"]["units"]))
+              "up to the next box, {:,} pieces.\n".format(rows["SUP-2318"]["units"]))
 
     md.append("## Basis of Decision\n")
     md.append("Five things separate these offers, and none of them is the "
@@ -590,67 +718,105 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
                   money(rows["SUP-3155"]["total"])))
 
     md.append("## Data Quality and Exclusions\n")
-    md.append("- **Source inspections excluded from the reject rates.** The "
-              "inspection log carries {} `SOURCE` records alongside the "
-              "`INCOMING` ones: pre-shipment inspections by Cadence "
-              "supplier-quality engineers at the supplier's plant, {} of them "
-              "on SUP-1042 lots. Pieces failed at source are scrapped or "
-              "reworked at the seller's cost, the seller makes the tendered "
-              "quantity good, and the lot is inspected again on receipt. Only "
-              "`INCOMING` records describe pieces Cadence paid for and "
-              "dispositioned, so only they enter the reject rates. Pooling the "
-              "two counts those lots twice and lifts SUP-1042's scrap loss "
-              "rate from {:.3f}% to about {:.3f}%, which hands the award to "
-              "SUP-4077.\n".format(
-                  source_stats["rows"], source_stats["rows_1042"],
-                  100 * rows["SUP-1042"]["loss_rate"],
-                  100 * source_stats["pooled_loss_1042"]))
-    md.append("- **Returned pieces excluded from the purchase gross-up.** "
-              "{:,} of the {:,} pieces rejected at incoming inspection across "
-              "the four candidates went back to the seller against a return "
-              "authorisation and were replaced at the seller's cost inside the "
-              "contract year, leaving {:,} scrapped; the returned pieces are "
-              "rejects but they are not a loss and they carry no disposal "
-              "charge. They stay in `reject_rate_pct`, "
-              "which the brief defines as rejected pieces over inspected "
-              "pieces, and they are out of both the purchase quantity and the "
-              "disposal charge. Grossing the buy up on every reject instead "
-              "buys {:,} pieces too many from SUP-1042 and hands the award to "
-              "SUP-4077.\n".format(
-                  source_stats["returned_total"], source_stats["rejected_total"],
-                  source_stats["rejected_total"] - source_stats["returned_total"],
-                  source_stats["overbuy_1042"]))
-    md.append("- **Post-cutover receipts resolved to their purchase orders.** "
-              "Purchasing and receiving moved to the new ERP on {} "
-              "(CHG-2025-0417). Receipts posted from that date carry the "
-              "ERP's ten-digit purchase order number, which does not exist "
-              "in the purchasing extract; `po_reference_2025.csv` "
-              "carries both numbers. Joining receipts to purchase "
-              "orders on the number as posted silently loses every lot received "
-              "after go-live - {} of {} inspected lots - and those lots carry "
-              "most of SUP-3155's rejects: without them its scrap loss rate "
-              "reads about {:.3f}% instead of {:.3f}% and the award flips to "
-              "SUP-3155.\n".format(
-                  ERP_GO_LIVE, source_stats["post_lots"], source_stats["lots"],
-                  100 * source_stats["pre_loss_3155"],
-                  100 * rows["SUP-3155"]["loss_rate"]))
-    md.append("- **Supplier identity.** Purchasing, quality and the supplier "
-              "master each spell supplier names differently, and the "
-              "inspection log's free-text `supplier` field is blank or null "
-              "on a large minority of lots (the QMS interface stopped "
-              "receiving it at the ERP go-live). Records were resolved to "
-              "supplier codes through the `name_aliases` sheet of the supplier "
-              "master, and inspection lots were attributed by `lot_id` "
-              "through the goods receipt to the purchase order and then to "
-              "the supplier code. Attributing on the free-text field instead "
-              "drops the unattributed lots, and those lots are not randomly "
-              "distributed: doing so understates SUP-3155's loss rate by "
-              "roughly two thirds and reverses the award.\n")
-    md.append("- **Double-logged inspection lots.** The inspection log "
-              "contains repeated `INCOMING` records for the same `lot_id` "
-              "under different `inspection_id` values. These are one "
-              "physical lot each and were deduplicated on `lot_id` before "
-              "any rate was computed.\n")
+    if did["incoming_only"]:
+        md.append("- **Source inspections excluded from the reject rates.** The "
+                  "inspection log carries {} `SOURCE` records alongside the "
+                  "`INCOMING` ones: pre-shipment inspections by Cadence "
+                  "supplier-quality engineers at the supplier's plant, {} of them "
+                  "on SUP-1042 lots. Pieces failed at source are scrapped or "
+                  "reworked at the seller's cost, the seller makes the tendered "
+                  "quantity good, and the lot is inspected again on receipt. Only "
+                  "`INCOMING` records describe pieces Cadence paid for and "
+                  "dispositioned, so only they enter the reject rates. Pooling the "
+                  "two counts those lots twice and lifts SUP-1042's scrap loss "
+                  "rate from {:.3f}% to about {:.3f}%, which hands the award to "
+                  "SUP-4077.\n".format(
+                      source_stats["rows"], source_stats["rows_1042"],
+                      100 * rows["SUP-1042"]["loss_rate"],
+                      100 * source_stats["pooled_loss_1042"]))
+    else:
+        md.append("- **Inspection records counted.** Every SP-40 inspection "
+                  "record in the QMS log was counted towards the reject rates, "
+                  "including the {} `SOURCE` records the supplier-quality "
+                  "engineers keyed at the suppliers' plants: they are "
+                  "inspections of the same part and are reported on the same "
+                  "log.\n".format(source_stats["rows"]))
+    if did["scrapped_only"]:
+        md.append("- **Returned pieces excluded from the purchase gross-up.** "
+                  "{:,} of the {:,} pieces rejected at incoming inspection across "
+                  "the four candidates went back to the seller against a return "
+                  "authorisation and were replaced at the seller's cost inside the "
+                  "contract year, leaving {:,} scrapped; the returned pieces are "
+                  "rejects but they are not a loss and they carry no disposal "
+                  "charge. They stay in `reject_rate_pct`, "
+                  "which the brief defines as rejected pieces over inspected "
+                  "pieces, and they are out of both the purchase quantity and the "
+                  "disposal charge. Grossing the buy up on every reject instead "
+                  "buys {:,} pieces too many from SUP-1042 and hands the award to "
+                  "SUP-4077.\n".format(
+                      source_stats["returned_total"], source_stats["rejected_total"],
+                      source_stats["rejected_total"] - source_stats["returned_total"],
+                      source_stats["overbuy_1042"]))
+    else:
+        md.append("- **Rejected pieces treated alike.** All {:,} pieces "
+                  "rejected at incoming inspection across the four candidates "
+                  "were carried in `reject_rate_pct`, in the purchase "
+                  "gross-up and in the disposal charge, whichever disposition "
+                  "the inspector recorded against them.\n".format(
+                      source_stats["rejected_total"]))
+    if did["crosswalked"]:
+        md.append("- **Post-cutover receipts resolved to their purchase orders.** "
+                  "Purchasing and receiving moved to the new ERP on {} "
+                  "(CHG-2025-0417). Receipts posted from that date carry the "
+                  "ERP's ten-digit purchase order number, which does not exist "
+                  "in the purchasing extract; `po_reference_2025.csv` "
+                  "carries both numbers. Joining receipts to purchase "
+                  "orders on the number as posted silently loses every lot received "
+                  "after go-live - {} of {} inspected lots - and those lots carry "
+                  "most of SUP-3155's rejects: without them its scrap loss rate "
+                  "reads about {:.3f}% instead of {:.3f}% and the award flips to "
+                  "SUP-3155.\n".format(
+                      ERP_GO_LIVE, source_stats["post_lots"], source_stats["lots"],
+                      100 * source_stats["pre_loss_3155"],
+                      100 * rows["SUP-3155"]["loss_rate"]))
+    else:
+        md.append("- **Receipts joined to purchase orders on the posted "
+                  "number.** Inspection lots were tied to a supplier through "
+                  "the goods receipt's `po_id` as the receipt carries it. "
+                  "Receipts that did not match a purchase order in the "
+                  "purchasing extract carry no supplier and are not in the "
+                  "reject rates.\n")
+    if did["by_receipt"]:
+        md.append("- **Supplier identity.** Purchasing, quality and the supplier "
+                  "master each spell supplier names differently, and the "
+                  "inspection log's free-text `supplier` field is blank or null "
+                  "on a large minority of lots (the QMS interface stopped "
+                  "receiving it at the ERP go-live). Records were resolved to "
+                  "supplier codes through the `name_aliases` sheet of the supplier "
+                  "master, and inspection lots were attributed by `lot_id` "
+                  "through the goods receipt to the purchase order and then to "
+                  "the supplier code. Attributing on the free-text field instead "
+                  "drops the unattributed lots, and those lots are not randomly "
+                  "distributed: doing so understates SUP-3155's loss rate by "
+                  "roughly two thirds and reverses the award.\n")
+    else:
+        md.append("- **Supplier identity.** Inspection records were attributed "
+                  "to suppliers on the log's own `supplier` field, resolved to "
+                  "supplier codes through the `name_aliases` sheet of the "
+                  "supplier master. Records whose `supplier` field is blank or "
+                  "null carry no supplier code and are not in the reject "
+                  "rates.\n")
+    if did["deduped"]:
+        md.append("- **Double-logged inspection lots.** The inspection log "
+                  "contains repeated `INCOMING` records for the same `lot_id` "
+                  "under different `inspection_id` values. These are one "
+                  "physical lot each and were deduplicated on `lot_id` before "
+                  "any rate was computed.\n")
+    else:
+        md.append("- **Inspection records counted as keyed.** Every record in "
+                  "the QMS log was counted as it stands, including repeated "
+                  "records for the same `lot_id` under different "
+                  "`inspection_id` values.\n")
     md.append("- **Non-candidate supplier.** SUP-9001, Old Harbor Machine "
               "Company, appears throughout the 2025 purchasing, receipt and "
               "inspection data. It is shown as terminated 2025-09-30 in the "
@@ -659,18 +825,24 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
     md.append("- **Purchase orders.** Cancelled purchase orders have no "
               "receipts and no inspected lots and affect nothing. SP-22 "
               "purchase orders are a different part and are out of scope.\n")
-    md.append("- **Demand.** The planning-cube dump carries the superseded "
-              "October S&OP cycle beside the frozen November one, a `TOTAL` "
-              "subtotal row for each part and cycle, and a rolling "
-              "fifteen-month horizon that runs three months past the contract "
-              "year. Only the twelve monthly SP-40 rows of the November cycle "
-              "from April 2026 to March 2027 were used. The October cycle "
-              "reads {:,} pieces over the same window and the whole November "
-              "horizon reads {:,}; either one, or the calendar-2026 reading of "
-              "{:,}, pushes the buy past SUP-4077's 520,000-piece rebate "
-              "threshold and flips the award.\n".format(
-                  source_stats["oct_units"], source_stats["horizon_units"],
-                  source_stats["calendar_units"]))
+    if did["window"] == "contract" and did["cycle"] == "frozen":
+        md.append("- **Demand.** The planning-cube dump carries the superseded "
+                  "October S&OP cycle beside the frozen November one, a `TOTAL` "
+                  "subtotal row for each part and cycle, and a rolling "
+                  "fifteen-month horizon that runs three months past the contract "
+                  "year. Only the twelve monthly SP-40 rows of the November cycle "
+                  "from April 2026 to March 2027 were used. The October cycle "
+                  "reads {:,} pieces over the same window and the whole November "
+                  "horizon reads {:,}; either one, or the calendar-2026 reading of "
+                  "{:,}, pushes the buy past SUP-4077's 520,000-piece rebate "
+                  "threshold and flips the award.\n".format(
+                      source_stats["oct_units"], source_stats["horizon_units"],
+                      source_stats["calendar_units"]))
+    else:
+        md.append("- **Demand.** The requirement was read off the "
+                  "planning-cube dump: the SP-40 rows of {}, over {}. SP-22 is "
+                  "a different part on a separate agreement and is out of "
+                  "scope.\n".format(cycle_phrase, window_phrase))
     md.append("- **Exchange rates.** FY2026 figures use the mandated Treasury "
               "planning rates from the finance memo, not 2025 daily actuals. "
               "The 2025 daily export averages materially below the planning "
@@ -698,24 +870,26 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
               "rides on.\n".format(
                   win, 100 * rows[win]["rate"], 100 * rows[win]["loss_rate"],
                   100 * breakeven, CONTRACTS[win]["spec_limit_pct"]))
-    md.append("- **The return route is a commercial arrangement, not a "
-              "quality one.** {}'s advantage rests on {:,} of its {:,} "
-              "rejected pieces going back on a return authorisation rather "
-              "than into the scrap cage, which is practical because the lane "
-              "is a one-day domestic truck movement. If FY2026 returns are "
-              "not authorised at the 2025 rate the buy quantity and the "
-              "disposal bill both move against this recommendation, and the "
-              "award is worth revisiting; an FY2026 return-authorisation "
-              "commitment belongs in the agreement.\n".format(
-                  win, defects[win]["returned"], defects[win]["rejected"]))
-    md.append("- **The incoming rate depends on the source sort.** On the {} "
-              "SUP-1042 lots that were source-inspected in 2025, the engineer "
-              "rejected {:.1f}% of pieces at the plant before they shipped. "
-              "The low incoming rate is partly the product of that sorting; "
-              "if source inspection is scaled back in FY2026, incoming "
-              "quality could move toward the breakeven above. Keeping the "
-              "source-inspection cadence is a condition of the award.\n".format(
-                  source_stats["rows_1042"], 100 * source_stats["source_rate_1042"]))
+    if did["scrapped_only"]:
+        md.append("- **The return route is a commercial arrangement, not a "
+                  "quality one.** {}'s advantage rests on {:,} of its {:,} "
+                  "rejected pieces going back on a return authorisation rather "
+                  "than into the scrap cage, which is practical because the lane "
+                  "is a one-day domestic truck movement. If FY2026 returns are "
+                  "not authorised at the 2025 rate the buy quantity and the "
+                  "disposal bill both move against this recommendation, and the "
+                  "award is worth revisiting; an FY2026 return-authorisation "
+                  "commitment belongs in the agreement.\n".format(
+                      win, defects[win]["returned"], defects[win]["rejected"]))
+    if did["incoming_only"]:
+        md.append("- **The incoming rate depends on the source sort.** On the {} "
+                  "SUP-1042 lots that were source-inspected in 2025, the engineer "
+                  "rejected {:.1f}% of pieces at the plant before they shipped. "
+                  "The low incoming rate is partly the product of that sorting; "
+                  "if source inspection is scaled back in FY2026, incoming "
+                  "quality could move toward the breakeven above. Keeping the "
+                  "source-inspection cadence is a condition of the award.\n".format(
+                      source_stats["rows_1042"], 100 * source_stats["source_rate_1042"]))
     md.append("- **Concentration.** Consolidating the part onto one supplier "
               "removes the current split and leaves no qualified running "
               "alternative. SUP-3155 offers the shortest lead time at 18 days "

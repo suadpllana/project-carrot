@@ -73,7 +73,7 @@ new file mode 100644
 +
 +## Cost Comparison
 +
-+The FY2026 good-unit requirement worked to is **493,000 SP-40 pieces** - the twelve monthly SP-40 rows of the frozen November S&OP cycle that fall in the contract year the four offers cover, April 2026 through March 2027. The cube dump is a rolling fifteen-month horizon, so its January-March 2026 rows sit before the contract year and are excluded; so are the superseded October cycle, the `TOTAL` subtotal rows and every SP-22 row. Read as calendar 2026 the same cycle gives 512,000 pieces and read whole it gives 623,600; neither is the period this contract covers.
++The FY2026 good-unit requirement worked to is **493,000 SP-40 pieces** - the monthly SP-40 rows of the frozen November S&OP cycle that fall in the contract year the four offers cover, April 2026 through March 2027, with the `TOTAL` subtotal rows excluded and every SP-22 row excluded. The cube dump is a rolling fifteen-month horizon, so its January-March 2026 rows sit before the contract year and are excluded, as is the superseded October cycle. Read as calendar 2026 the same cycle gives 512,000 pieces and read whole it gives 623,600; neither is the period this contract covers.
 +
 +| supplier_code | supplier_name | quoted USD/piece | units to purchase | FY2026 total USD | USD per good unit | rank |
 +| --- | --- | --- | --- | --- | --- | --- |

@@ -47,7 +47,7 @@ supplier_code,supplier_name,quoted_price_usd_per_unit,units_to_purchase,total_fy
 
 Numeric fields carry digits, an optional leading minus sign and a decimal point
 only: no currency symbols, no thousands separators, no percent signs, no
-quoting. Both files are RFC 4180 CSV — a text field containing a comma must be
+quoting. All three CSVs are RFC 4180 — a text field containing a comma must be
 double-quoted, and at least one supplier's legal name does contain one.
 
 Round only what you report. Every figure is computed from unrounded
@@ -131,9 +131,29 @@ Each section must contain **at least 30 words**, and must cover the following.
   as a quantity.
 
 Figures repeated in the memo are the figures you filed — quote them as they
-stand in the two CSVs, to the cent or rounded to the nearest whole dollar,
+stand in the CSVs, to the cent or rounded to the nearest whole dollar,
 never at some other value. Every monetary figure in the memo is stated in US
 dollars and marked as such.
+
+## How your figures are checked
+
+Each figure is compared against the value it should hold, at the precision this
+brief asks you to report it to, with half a unit of latitude in the last
+reported place. That is enough that a rounding tie broken either way passes,
+and not enough for a figure that is analytically different to.
+
+| What is checked | Accepted within |
+| --- | --- |
+| `quoted_price_usd_per_unit`, `cost_per_good_unit_usd` | ± 0.00005 |
+| `total_fy2026_cost_usd`, `amount_usd` | ± 0.005 |
+| `reject_rate_pct` | ± 0.0005 |
+| `units_to_purchase`, `rank`, `lots_inspected`, `units_inspected`, `units_rejected` | the exact whole number |
+| a supplier's `cost_buildup.csv` rows against its filed total | half a cent per row you wrote |
+| a US-dollar figure quoted in the memo | ± 0.50, so the cent and the whole dollar both pass |
+| a count quoted in the memo | the exact whole number |
+
+There is no wider band anywhere, so carry intermediates unrounded and round
+only the figure you write down.
 
 ## Constraints
 

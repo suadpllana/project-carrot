@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import csv
 import io
+import itertools
 import os
 import re
 from pathlib import Path
@@ -356,6 +357,28 @@ def is_whole(value):
     return abs(value - round(value)) <= 1e-9
 
 
+def charges_amount(amounts, target, max_terms=4):
+    """The attempt charged `target` - as one element, or as several adding to it.
+
+    instruction.md lets the attempt choose its own elements and labels, and
+    asks it to give each element it charged its own row rather than folding one
+    into another. A build-up that itemises inbound freight as the lane tariff
+    and the brokerage, or the banded rebate band by band, has charged the same
+    amount correctly and has to be read as having charged it. Only amounts are
+    matched; the labels are never inspected.
+    """
+    amounts = [a for a in amounts if a is not None][:24]
+    if any(abs(a - target) <= 0.005 + 1e-9 for a in amounts):
+        return True
+    for r in range(2, min(max_terms, len(amounts)) + 1):
+        for combo in itertools.combinations(amounts, r):
+            # every row is rounded to the cent, so a sum of r of them can sit
+            # up to half a cent per row away from the amount actually charged
+            if abs(sum(combo) - target) <= 0.005 * r + 1e-9:
+                return True
+    return False
+
+
 # A dollar marker directly before or after a figure: `USD 963017.63`,
 # `$963,017.63`, `963,017.63 USD`, `963,018 US dollars`.
 DOLLAR_BEFORE = r"(?:USD|US\$|\$|US dollars?)\s*"
@@ -454,39 +477,35 @@ def rank_one_row():
 # ---------------------------------------------------------------------------
 # file gate
 # ---------------------------------------------------------------------------
-def test_supplier_costs_file_exists():
-    assert COSTS.is_file(), "missing /workspace/output/supplier_costs.csv"
-
-
-def test_defect_rates_file_exists():
-    assert DEFECTS.is_file(), "missing /workspace/output/defect_rates.csv"
-
-
-def test_recommendation_file_exists():
-    assert MEMO.is_file(), "missing /workspace/output/recommendation.md"
+def test_all_four_deliverables_exist():
+    """The four files instruction.md asks for, under the output directory."""
+    missing = [name for name in GRADED if not (OUTPUT_DIR / name).is_file()]
+    assert not missing, "missing from %s: %s" % (OUTPUT_DIR, ", ".join(missing))
 
 
 # ---------------------------------------------------------------------------
-# supplier_costs.csv - shape and formatting
+# supplier_costs.csv and defect_rates.csv - the file contract
+#
+# One check per file rather than one per clause. These are the points a
+# well-formed but analytically empty answer banks whatever it concluded, so
+# they are deliberately worth little; splitting them thinly would both inflate
+# that floor and leave the weight distribution lopsided against the decision
+# checks. Every assertion still names the clause it failed, so a reviewer
+# reading ctrf.json sees which part of the contract was broken.
 # ---------------------------------------------------------------------------
-def test_supplier_costs_header_exact():
+def test_supplier_costs_contract():
+    """Exact header, the four candidates, numeric formatting, sorted by rank."""
     assert COSTS.is_file(), "supplier_costs.csv not produced"
     first = next(csv.reader(io.StringIO(
         COSTS.read_text(encoding="utf-8", errors="replace"))), [])
     assert [c.strip() for c in first] == COSTS_HEADER, (
         "header is %r, expected %r" % (first, COSTS_HEADER))
 
-
-def test_supplier_costs_has_four_candidate_rows():
     rows, body = costs_rows()
     assert len(body) == 4, "expected exactly 4 data rows, found %d" % len(body)
     assert sorted(rows) == sorted(CANDIDATES), (
         "supplier_code set is %s, expected %s" % (sorted(rows), sorted(CANDIDATES)))
 
-
-def test_supplier_costs_numeric_formatting():
-    rows, _ = costs_rows()
-    assert rows, "no parsable rows in supplier_costs.csv"
     for code, r in rows.items():
         for idx in (2, 3, 4, 5, 6):
             assert NUMERIC_OK.match(r[idx]), (
@@ -498,10 +517,6 @@ def test_supplier_costs_numeric_formatting():
         assert decimals(r[3]) == 0, "%s units_to_purchase must be an integer" % code
         assert decimals(r[6]) == 0, "%s rank must be an integer" % code
 
-
-def test_supplier_costs_sorted_by_rank():
-    rows, body = costs_rows()
-    assert len(body) == 4, "expected 4 data rows"
     ranks = [as_float(r[6]) for r in body if len(r) == len(COSTS_HEADER)]
     assert all(r is not None and is_whole(r) for r in ranks), (
         "every rank must be an integer, got %s" % [r[6] for r in body])
@@ -521,18 +536,14 @@ def test_supplier_names_match_master():
             "%r in full" % (code, rows[code][1], gold))
 
 
-# ---------------------------------------------------------------------------
-# defect_rates.csv - shape
-# ---------------------------------------------------------------------------
-def test_defect_rates_header_exact():
+def test_defect_rates_contract():
+    """Exact header, the four candidates sorted by code, reported precision."""
     assert DEFECTS.is_file(), "defect_rates.csv not produced"
     first = next(csv.reader(io.StringIO(
         DEFECTS.read_text(encoding="utf-8", errors="replace"))), [])
     assert [c.strip() for c in first] == DEFECTS_HEADER, (
         "header is %r, expected %r" % (first, DEFECTS_HEADER))
 
-
-def test_defect_rates_four_rows_sorted_by_code():
     rows, body = defects_rows()
     assert len(body) == 4, "expected exactly 4 data rows, found %d" % len(body)
     codes = [r[0].strip() for r in body if r]
@@ -541,10 +552,6 @@ def test_defect_rates_four_rows_sorted_by_code():
     assert NON_CANDIDATE not in codes, (
         "%s is not a candidate for the FY2026 award and must not appear" % NON_CANDIDATE)
 
-
-def test_defect_rates_precision():
-    rows, _ = defects_rows()
-    assert rows, "no parsable rows in defect_rates.csv"
     for code, r in rows.items():
         for idx in (1, 2, 3, 4):
             assert NUMERIC_OK.match(r[idx]), (
@@ -923,7 +930,7 @@ def test_disposal_charged_on_the_scrapped_pieces_only():
     missing = []
     for code, value in sorted(GOLD_DISPOSAL.items()):
         amounts = [a for _, a in by.get(code, []) if a is not None]
-        if not any(abs(a - value) <= 0.005 + 1e-9 for a in amounts):
+        if not charges_amount(amounts, value):
             missing.append("%s (USD %.2f)" % (code, value))
     assert not missing, (
         "cost_buildup.csv charges no disposal element of the amount the "
@@ -1006,10 +1013,6 @@ def test_memo_cost_comparison_covers_all_four():
             % (code, total))
 
 
-def test_cost_buildup_file_exists():
-    assert BUILDUP.is_file(), "missing /workspace/output/cost_buildup.csv"
-
-
 def test_cost_buildup_header_and_shape():
     assert BUILDUP.is_file(), "cost_buildup.csv not produced"
     first = next(csv.reader(io.StringIO(
@@ -1067,7 +1070,7 @@ def test_cost_buildup_material_correct():
     missing = []
     for code, value in sorted(GOLD_MATERIAL.items()):
         amounts = [a for _, a in by.get(code, []) if a is not None]
-        if not any(abs(a - value) <= 0.005 + 1e-9 for a in amounts):
+        if not charges_amount(amounts, value):
             missing.append("%s (USD %.2f)" % (code, value))
     assert not missing, (
         "cost_buildup.csv charges no element of the material amount for: %s"
@@ -1079,7 +1082,8 @@ def test_cost_buildup_freight_rebate_and_shortfall_correct():
     shipments; two are DDP and carry none. SUP-2318's rebate is rated band by
     band rather than re-rating the year at 3.0%, and SUP-4077 owes the clause
     4.1 shortfall charge because the buy misses its 520,000-piece commitment.
-    The labels are the attempt's own, so only the amounts are matched."""
+    The labels are the attempt's own, so only the amounts are matched,
+    as one element or as several adding to it."""
     by = buildup_by_supplier()
     assert by, "no parsable rows in cost_buildup.csv"
     wanted = {code: [("inbound freight", v)] for code, v in GOLD_FREIGHT.items()}
@@ -1089,7 +1093,7 @@ def test_cost_buildup_freight_rebate_and_shortfall_correct():
     for code, items in sorted(wanted.items()):
         amounts = [a for _, a in by.get(code, []) if a is not None]
         for label, value in items:
-            if not any(abs(a - value) <= 0.005 + 1e-9 for a in amounts):
+            if not charges_amount(amounts, value):
                 missing.append("%s %s (USD %.2f)" % (code, label, value))
     assert not missing, (
         "cost_buildup.csv charges no element of that amount for: %s"
@@ -1100,7 +1104,8 @@ def test_cost_buildup_charges_the_working_capital_value():
     """Section 3 of the shipped finance policy values payment terms against a
     Net 30 baseline at the cost of capital. Any correct build-up carries that
     amount for the three suppliers whose terms are not Net 30; the labels are
-    the attempt's own, so only the amounts are matched. An attempt that never
+    the attempt's own, so only the amounts are matched, as one element or
+    as several adding to it. An attempt that never
     modelled working capital has no row of that size."""
     by = buildup_by_supplier()
     assert by, "no parsable rows in cost_buildup.csv"
@@ -1108,7 +1113,7 @@ def test_cost_buildup_charges_the_working_capital_value():
     for code, wanted in sorted(GOLD_BUILDUP.items()):
         amounts = [a for _, a in by.get(code, []) if a is not None]
         for label, value in sorted(wanted.items()):
-            if not any(abs(a - value) <= 0.005 + 1e-9 for a in amounts):
+            if not charges_amount(amounts, value):
                 missing.append("%s %s (USD %.2f)" % (code, label, value))
     assert not missing, (
         "cost_buildup.csv charges no element of that amount for: %s"

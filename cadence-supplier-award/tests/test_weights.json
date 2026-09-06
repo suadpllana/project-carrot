@@ -1,51 +1,19 @@
 [
   {
-    "test_name": "test_supplier_costs_file_exists",
-    "weight": 1
+    "test_name": "test_all_four_deliverables_exist",
+    "weight": 2
   },
   {
-    "test_name": "test_defect_rates_file_exists",
-    "weight": 1
+    "test_name": "test_supplier_costs_contract",
+    "weight": 3
   },
   {
-    "test_name": "test_cost_buildup_file_exists",
-    "weight": 1
-  },
-  {
-    "test_name": "test_recommendation_file_exists",
-    "weight": 1
-  },
-  {
-    "test_name": "test_supplier_costs_header_exact",
-    "weight": 1
-  },
-  {
-    "test_name": "test_supplier_costs_has_four_candidate_rows",
-    "weight": 1
-  },
-  {
-    "test_name": "test_supplier_costs_numeric_formatting",
-    "weight": 1
-  },
-  {
-    "test_name": "test_supplier_costs_sorted_by_rank",
-    "weight": 1
-  },
-  {
-    "test_name": "test_defect_rates_header_exact",
-    "weight": 1
-  },
-  {
-    "test_name": "test_defect_rates_four_rows_sorted_by_code",
-    "weight": 1
-  },
-  {
-    "test_name": "test_defect_rates_precision",
-    "weight": 1
+    "test_name": "test_defect_rates_contract",
+    "weight": 3
   },
   {
     "test_name": "test_cost_buildup_header_and_shape",
-    "weight": 1
+    "weight": 3
   },
   {
     "test_name": "test_supplier_names_match_master",
@@ -61,37 +29,37 @@
   },
   {
     "test_name": "test_award_is_correct_supplier",
-    "weight": 52,
+    "weight": 57,
     "decision": true
   },
   {
     "test_name": "test_award_quantity_is_correct",
-    "weight": 36,
+    "weight": 40,
     "decision": true
   },
   {
     "test_name": "test_award_total_is_correct",
-    "weight": 36,
+    "weight": 40,
     "decision": true
   },
   {
     "test_name": "test_recommendation_states_quantity_total_and_margin",
-    "weight": 19,
+    "weight": 21,
     "decision": true
   },
   {
     "test_name": "test_recommendation_names_correct_supplier",
-    "weight": 13,
+    "weight": 15,
     "decision": true
   },
   {
     "test_name": "test_full_ranking_correct",
-    "weight": 9,
+    "weight": 10,
     "decision": true
   },
   {
     "test_name": "test_runner_up_identified",
-    "weight": 7,
+    "weight": 8,
     "decision": true
   },
   {
@@ -180,11 +148,11 @@
   },
   {
     "test_name": "test_memo_cost_comparison_covers_all_four",
-    "weight": 1
+    "weight": 2
   },
   {
     "test_name": "test_memo_totals_agree_with_costs_file",
-    "weight": 1
+    "weight": 2
   },
   {
     "test_name": "test_penalty_award_is_split_or_deferred",
