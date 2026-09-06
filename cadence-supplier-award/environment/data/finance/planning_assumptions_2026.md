@@ -80,7 +80,6 @@ supply agreements and are not budgeted by Cadence.
 
 **Cadence's fiscal year 2026 runs from 1 April 2026 to 31 March 2027.**
 
-All sourcing award cases are presented in **US dollars** on a **full contract
-year** basis. Do not annualize from a partial period, do not present a case
-for a period other than the contract year the offer covers, and do not present
-a case in a supplier's invoicing currency.
+All sourcing award cases are presented in **US dollars**. Do not annualize
+from a partial period, and do not present a case in a supplier's invoicing
+currency.

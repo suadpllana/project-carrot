@@ -15,7 +15,12 @@ task_card.md:
     drops every post-cutover lot;
   * the demand cube is a rolling fifteen-month horizon and retains the
     superseded October S&OP cycle beside the frozen November one, so the
-    contract-year window has to be cut out of it.
+    contract-year window has to be cut out of it;
+  * a lot can carry more than one QMS record for two different reasons - the
+    same inspection keyed twice (a duplicate, counted once) or pieces found
+    after the lot was first logged (a supplementary finding with no inspected
+    quantity of its own, added to the lot) - so deduplicating on lot_id drops
+    the additions and not deduplicating double-counts the repeats.
 
 The shipped documents DESCRIBE these fields and systems and never say what to
 do about them: what a reject rate is defined over, which rejected pieces are
@@ -32,6 +37,7 @@ Run from anywhere:  python solution/_provenance/generate_data.py
 """
 from __future__ import annotations
 
+import collections
 import csv
 import datetime as dt
 import json
@@ -107,6 +113,24 @@ OCT_SCALE_SP22 = 1.030
 # each supplier's rejected pieces that ends up SCRAP:
 SCRAP_SHARE = {"SUP-1042": 0.215, "SUP-2318": 0.880,
                "SUP-3155": 0.780, "SUP-4077": 0.940}
+
+# Supplementary findings: pieces identified after a lot's record was keyed (a
+# full-lot sort, a finding upheld on review) are keyed as a further record
+# against the same lot, carrying the pieces newly rejected and no inspected
+# quantity of its own. A share of the chosen scrap lots' rejects is moved onto
+# such a record; the lot's total is unchanged, so the ground truth is too. An
+# attempt that deduplicates on lot_id keeps one record and silently drops the
+# addition. Concentrated on SUP-4077, whose ocean lots are sorted at Aurora.
+#   (lots chosen, share of each lot's rejects moved, floor on the lot's rejects)
+SUPPLEMENT_PLAN = {
+    "SUP-4077": dict(n=14, share=(0.60, 0.80), floor=60),
+    "SUP-3155": dict(n=3, share=(0.20, 0.35), floor=60),
+    "SUP-2318": dict(n=2, share=(0.30, 0.45), floor=25),
+}
+# Further lots keyed twice, on top of the eight the revision-1 log carries.
+# Chosen from SUP-4077's returned and cleanest lots, so that NOT deduplicating
+# flatters SUP-4077 as surely as deduplicating on lot_id does.
+DUPLICATE_EXTRA = {"SUP-4077": 5}
 
 
 def d(s):
@@ -212,6 +236,18 @@ def main():
         print("  %-22s %s" % (label, summary(groups[k])))
     assert all(r["qty_rejected"] <= 0.22 * r["qty_inspected"] for r in groups["A"])
 
+    # ------------------------------------------------ repeats are one lot --
+    # A lot keyed twice is ONE inspection: both records carry the same figures,
+    # so nothing about the ground truth can turn on which record an attempt
+    # happens to keep. (The revision-1 log left one SUP-3155 pair different.)
+    first_of = {}
+    for r in recs:
+        first_of.setdefault(r["lot_id"], r)
+    for r in recs:
+        p = first_of[r["lot_id"]]
+        r["qty_inspected"], r["qty_rejected"] = p["qty_inspected"], p["qty_rejected"]
+        r["defect_codes"] = list(p["defect_codes"])
+
     # ------------------------------------------------ reject disposition --
     # One disposition per physical lot: the pieces a lot failed on are either
     # scrapped at Aurora under the waste contract, or returned to the seller
@@ -296,13 +332,71 @@ def main():
                  / sum(x["qty_inspected"] for x in source_rows if lot_supplier[x["lot_id"]] == code),
                  sum(1 for x in source_rows if lot_supplier[x["lot_id"]] == code and x["lot_id"] in late)))
 
+    # ------------------------------------------ supplementary findings --
+    source_lots = {x["lot_id"] for x in source_rows}
+    repeats = collections.Counter(r["lot_id"] for r in recs)
+    supplement_rows, supplement_stats = [], {}
+    for code, plan in SUPPLEMENT_PLAN.items():
+        hosts = sorted(l for l, r in first_of.items()
+                       if lot_supplier[l] == code and repeats[l] == 1
+                       and l not in source_lots and r["disposition"] == "SCRAP"
+                       and r["qty_rejected"] >= plan["floor"])
+        chosen = sorted(rng.sample(hosts, plan["n"]))
+        moved = 0
+        for lot in chosen:
+            twin = first_of[lot]
+            take = int(round(rng.uniform(*plan["share"]) * twin["qty_rejected"]))
+            twin["qty_rejected"] -= take
+            moved += take
+            found = d(twin["inspected_on"]) + dt.timedelta(days=rng.randint(4, 16))
+            supplement_rows.append({
+                "inspection_id": None,
+                "lot_id": lot,
+                "inspected_on": found.isoformat(),
+                "part_number": "SP-40",
+                "supplier": twin["supplier"],
+                "inspection_point": "INCOMING",
+                "qty_inspected": 0,
+                "qty_rejected": take,
+                "inspector": rng.choice(["QA-03", "QA-07", "QA-11"]),
+                "defect_codes": [rng.choice(twin["defect_codes"] or ["D-104"])],
+                "disposition": "SCRAP",
+                "_logged": found,
+                "_old": "U" + lot,
+            })
+        supplement_stats[code] = (len(chosen), moved)
+        print("%s supplementary findings: %d lots, %d pieces moved onto later records"
+              % (code, len(chosen), moved))
+
+    # ------------------------------------------------ further repeats ----
+    for code, n in DUPLICATE_EXTRA.items():
+        pool = sorted((l for l, r in first_of.items()
+                       if lot_supplier[l] == code and repeats[l] == 1
+                       and l not in source_lots and l not in {x["lot_id"] for x in supplement_rows}),
+                      key=lambda l: (first_of[l]["disposition"] == "SCRAP",
+                                     first_of[l]["qty_rejected"] / first_of[l]["qty_inspected"], l))
+        for lot in pool[:n]:
+            twin = first_of[lot]
+            copy = dict(twin)
+            copy["defect_codes"] = list(twin["defect_codes"])
+            copy["inspection_id"] = twin["inspection_id"] + "b"
+            recs.append(copy)
+        print("%s: %d more lots keyed twice (%s)" % (code, n, ", ".join(pool[:n])))
+    # disjoint by construction: no lot is both repeated and supplemented, and
+    # neither kind sits on a source-inspected lot, so the order an attempt
+    # applies its rules in cannot change the answer
+    supplemented = {x["lot_id"] for x in supplement_rows}
+    repeated = {l for l, c in collections.Counter(r["lot_id"] for r in recs).items() if c > 1}
+    assert not (supplemented & repeated) and not (supplemented & source_lots) \
+        and not (repeated & source_lots), "repeat / supplement / source lots overlap"
+
     # ------------------------------------------------------- renumbering --
     for r in recs:
         r["_logged"] = d(r["inspected_on"])
         r["_old"] = r["inspection_id"]
     for r in source_rows:
         r["_old"] = "S" + r["lot_id"]
-    everything = recs + source_rows
+    everything = recs + source_rows + supplement_rows
     everything.sort(key=lambda r: (r["_logged"], r["_old"]))
     out = []
     for i, r in enumerate(everything, start=1):
@@ -323,7 +417,8 @@ def main():
     with open(DATA / "quality" / "incoming_inspection_2025.jsonl", "w", encoding="utf-8", newline="\n") as fh:
         for row in out:
             fh.write(json.dumps(row) + "\n")
-    print("inspection log: %d rows (%d source)" % (len(out), len(source_rows)))
+    print("inspection log: %d rows (%d source, %d supplementary)"
+          % (len(out), len(source_rows), len(supplement_rows)))
 
     # ---------------------------------------------- ERP cutover: receipts --
     erp = {}
@@ -432,7 +527,11 @@ order that brought it in.
 
 Inspection records are written to the QMS as they are keyed. The QMS assigns
 its own record number to each and does not merge records: where the same
-inspection is keyed twice, both records stand.
+inspection is keyed twice, both records stand. Where nonconforming pieces are
+identified in a lot after its inspection record has been keyed - at a full-lot
+sort, or when a finding is upheld on review - the further pieces are keyed as a
+record of their own against the same lot identifier, carrying the pieces newly
+rejected and no inspected quantity of its own.
 
 ## 3. Inspection
 
@@ -467,9 +566,7 @@ Where the commodity team has placed a supplier on source inspection, a Cadence
 supplier-quality engineer inspects the lot at the supplier's plant before it
 is released for shipment. Pieces found nonconforming there are scrapped or
 reworked at the seller's plant, at the seller's cost, and the seller makes the
-tendered quantity good before the shipment is released; they are not shipped
-to Aurora, are never received against a purchase order, and do not appear on
-the seller's invoice.
+tendered quantity good before the shipment is released.
 
 Source-inspection trip reports are entered into the same QMS log as receiving
 inspections, under the engineer's own inspector identifier, and are keyed on
@@ -603,8 +700,8 @@ The QMS inspection log for SP-40, one JSON object per inspection record.
 | `part_number` | Always `SP-40` in this extract. |
 | `supplier` | Free text keyed by the inspector; empty or `null` where nothing was keyed. Not validated. |
 | `inspection_point` | `INCOMING` for the Aurora receiving dock under QP-07, `SOURCE` for an inspection performed at the supplier's plant by a Cadence supplier-quality engineer. |
-| `qty_inspected` | Pieces inspected. |
-| `qty_rejected` | Pieces found nonconforming at that inspection. |
+| `qty_inspected` | Pieces inspected on this record. A record keyed for pieces found after the lot was first inspected carries none. |
+| `qty_rejected` | Pieces found nonconforming on this record. |
 | `inspector` | `QA-nn` Aurora quality, `SQE-nn` supplier quality. |
 | `defect_codes` | Nonconformance codes recorded. |
 | `disposition` | What was physically done with the pieces found nonconforming on that inspection, as recorded by the inspector: `SCRAP` (moved to the scrap cage and disposed of) or `REPLACED_BY_SUPPLIER` (packed back to the seller against a return authorisation and made good by the seller). One disposition per inspection record. |
@@ -651,14 +748,18 @@ lots are identified and how nonconforming pieces are dispositioned.
 # cheaper: that the populations came out of the generator far enough apart
 # that a wrong reading cannot land on the right numbers by accident.
 MIN_SEPARATION = 0.004          # 0.4 points of reject rate
+# the repeat-record routes move one supplier by a share of its own rejects;
+# a fifth of a point on SUP-4077 is already a USD 3,000 swing against a
+# USD 2,375 margin, and verify_design.py measures the flip itself
+MIN_SEPARATION_DEDUP = 0.0015
 
 
 def self_check(rows, erp, lot_supplier, lot_received):
     import collections
 
-    def rates(*, include_source=False, dedupe="first", drop_blank=False,
+    def rates(*, include_source=False, dedupe="exact", drop_blank=False,
               drop_post=False, scrap_only=True):
-        seen = {}
+        by_lot = collections.defaultdict(list)
         for r in rows:
             if r["inspection_point"] == "SOURCE" and not include_source:
                 continue
@@ -666,11 +767,24 @@ def self_check(rows, erp, lot_supplier, lot_received):
                 continue
             if drop_post and lot_received[r["lot_id"]] >= CUTOVER:
                 continue
-            key = r["lot_id"] if dedupe != "none" else r["inspection_id"]
-            if key not in seen or dedupe == "last":
-                seen[key] = r
+            by_lot[r["lot_id"]].append(r)
+        used = []
+        for lot, rs in by_lot.items():
+            rs.sort(key=lambda r: r["inspection_id"])
+            if dedupe == "none":
+                used += rs
+            elif dedupe in ("first", "last"):
+                used.append(rs[0] if dedupe == "first" else rs[-1])
+            else:   # exact: a repeat of the same figures is one record; an
+                    # addition with no inspected quantity is a further finding
+                seen_fig = set()
+                for r in rs:
+                    fig = (r["qty_inspected"], r["qty_rejected"], r["disposition"])
+                    if r["qty_inspected"] == 0 or fig not in seen_fig:
+                        seen_fig.add(fig)
+                        used.append(r)
         agg = collections.defaultdict(lambda: [0, 0])
-        for r in seen.values():
+        for r in used:
             code = lot_supplier[r["lot_id"]]
             agg[code][0] += r["qty_inspected"]
             if scrap_only and r["disposition"] != "SCRAP":
@@ -684,9 +798,12 @@ def self_check(rows, erp, lot_supplier, lot_received):
 
     print("\nself-check: the loss rate the purchase quantity is grossed up by")
     ref = rates()
-    show("reference (INCOMING, scrapped pieces only)", ref)
+    show("reference (INCOMING, repeats once, additions added)", ref)
     routes = [
         ("counts every reject, not just the scrapped ones", dict(scrap_only=False)),
+        ("dedups on lot_id, keeps first record (drops additions)", dict(dedupe="first", floor=MIN_SEPARATION_DEDUP)),
+        ("dedups on lot_id, keeps last record", dict(dedupe="last", floor=MIN_SEPARATION_DEDUP)),
+        ("no dedupe at all (double-counts repeats)", dict(dedupe="none", floor=MIN_SEPARATION_DEDUP)),
         ("pools SOURCE rows, dedupe keeps first record", dict(include_source=True)),
         ("pools SOURCE rows, dedupe keeps last record", dict(include_source=True, dedupe="last")),
         ("pools SOURCE rows, no dedupe", dict(include_source=True, dedupe="none")),
@@ -695,10 +812,11 @@ def self_check(rows, erp, lot_supplier, lot_received):
     ]
     close = []
     for label, kw in routes:
+        floor = kw.pop("floor", MIN_SEPARATION)
         rt = rates(**kw)
         show(label, rt)
         moved = max(abs(rt[c] - ref[c]) for c in CANDIDATES)
-        if moved < MIN_SEPARATION:
+        if moved < floor:
             close.append("%s (largest move %.3f points)" % (label, 100 * moved))
     assert not close, "routes that barely move any rate: %s" % close
     print("  every route above moves at least one supplier by %.1f points"

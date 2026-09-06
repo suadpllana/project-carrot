@@ -71,8 +71,8 @@ The QMS inspection log for SP-40, one JSON object per inspection record.
 | `part_number` | Always `SP-40` in this extract. |
 | `supplier` | Free text keyed by the inspector; empty or `null` where nothing was keyed. Not validated. |
 | `inspection_point` | `INCOMING` for the Aurora receiving dock under QP-07, `SOURCE` for an inspection performed at the supplier's plant by a Cadence supplier-quality engineer. |
-| `qty_inspected` | Pieces inspected. |
-| `qty_rejected` | Pieces found nonconforming at that inspection. |
+| `qty_inspected` | Pieces inspected on this record. A record keyed for pieces found after the lot was first inspected carries none. |
+| `qty_rejected` | Pieces found nonconforming on this record. |
 | `inspector` | `QA-nn` Aurora quality, `SQE-nn` supplier quality. |
 | `defect_codes` | Nonconformance codes recorded. |
 | `disposition` | What was physically done with the pieces found nonconforming on that inspection, as recorded by the inspector: `SCRAP` (moved to the scrap cage and disposed of) or `REPLACED_BY_SUPPLIER` (packed back to the seller against a return authorisation and made good by the seller). One disposition per inspection record. |

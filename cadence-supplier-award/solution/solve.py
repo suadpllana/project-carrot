@@ -209,7 +209,7 @@ def load_lot_supplier(po_supplier, crosswalk=None, *, use_crosswalk=True):
 
 
 def load_defect_rates(lot_supplier, alias=None, *, points=("INCOMING",),
-                      keep="first", attribute_by="receipt"):
+                      keep="exact", attribute_by="receipt"):
     """Per-supplier incoming inspection, deduplicated on lot_id.
 
     Only INCOMING records describe pieces Cadence received, pays for and
@@ -229,8 +229,17 @@ def load_defect_rates(lot_supplier, alias=None, *, points=("INCOMING",),
     The free-text `supplier` field in the inspection log is blank on a large
     minority of records and inconsistently spelled on the rest, so attribution
     goes through lot_id, not that field.
+
+    A lot can carry more than one record for two different reasons, and they
+    are read differently (QP-07 section 2). The same inspection keyed twice is
+    one inspection: identical figures, counted once. Pieces identified after
+    the lot was first logged are keyed as a further record against the lot,
+    carrying the pieces newly rejected and no inspected quantity: they are an
+    addition to the lot, not a repeat of it. Deduplicating on lot_id alone
+    keeps one record per lot and silently drops every addition; not
+    deduplicating at all double-counts every repeat.
     """
-    seen = {}
+    by_lot = {}
     with open(DATA / "quality" / "incoming_inspection_2025.jsonl", encoding="utf-8") as fh:
         for line in fh:
             line = line.strip()
@@ -241,26 +250,42 @@ def load_defect_rates(lot_supplier, alias=None, *, points=("INCOMING",),
                 continue
             if points is not None and rec.get("inspection_point") not in points:
                 continue
-            # a lot keyed twice by the QMS is one physical lot
-            key = rec["lot_id"] if keep != "none" else rec["inspection_id"]
-            if key not in seen:
-                seen[key] = rec
-            elif keep == "first" and rec["inspection_id"] < seen[key]["inspection_id"]:
-                seen[key] = rec
-            elif keep == "last" and rec["inspection_id"] > seen[key]["inspection_id"]:
-                seen[key] = rec
+            by_lot.setdefault(rec["lot_id"], []).append(rec)
 
-    agg = {c: dict(lots=0, units=0, rejected=0, scrapped=0) for c in CANDIDATES}
-    for rec in seen.values():
+    used = []
+    for lot, recs in by_lot.items():
+        recs.sort(key=lambda r: r["inspection_id"])
+        if keep == "none":
+            used += recs
+        elif keep in ("first", "last"):
+            used.append(recs[0] if keep == "first" else recs[-1])
+        else:                                    # "exact": the correct reading
+            figures = set()
+            for rec in recs:
+                fig = (int(rec["qty_inspected"]), int(rec["qty_rejected"]),
+                       rec.get("disposition"))
+                if int(rec["qty_inspected"]) == 0 or fig not in figures:
+                    figures.add(fig)
+                    used.append(rec)
+
+    agg = {c: dict(lots=0, units=0, rejected=0, scrapped=0, added=0) for c in CANDIDATES}
+    counted = set()
+    for rec in used:
         if attribute_by == "receipt":
             code = lot_supplier.get(rec["lot_id"])
         else:
             code = alias.get((rec.get("supplier") or "").strip().casefold())
         if code not in agg:          # terminated / non-candidate supplier, or unattributed
             continue
-        agg[code]["lots"] += 1
+        # a lot is counted once however many records it carries, except on a
+        # path that treats every record as a lot
+        if keep == "none" or rec["lot_id"] not in counted:
+            agg[code]["lots"] += 1
+            counted.add(rec["lot_id"])
         agg[code]["units"] += int(rec["qty_inspected"])
         agg[code]["rejected"] += int(rec["qty_rejected"])
+        if int(rec["qty_inspected"]) == 0:
+            agg[code]["added"] += int(rec["qty_rejected"])
         if rec.get("disposition") == "SCRAP":
             agg[code]["scrapped"] += int(rec["qty_rejected"])
     for code, a in agg.items():
@@ -468,7 +493,7 @@ def analysis_notes(choices=None):
     return dict(
         incoming_only=defect.get("points", ("INCOMING",)) is not None,
         by_receipt=defect.get("attribute_by", "receipt") == "receipt",
-        deduped=defect.get("keep", "first") != "none",
+        dedup=defect.get("keep", "exact"),
         crosswalked=lot.get("use_crosswalk", True),
         window=demand.get("window", "contract"),
         cycle=demand.get("cycle", "frozen"),
@@ -818,12 +843,31 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
                   "supplier master. Records whose `supplier` field is blank or "
                   "null carry no supplier code and are not in the reject "
                   "rates.\n")
-    if did["deduped"]:
+    if did["dedup"] == "exact":
+        md.append("- **Repeated records read for what they are.** The inspection "
+                  "log carries more than one `INCOMING` record for some lots, "
+                  "and they are not all the same thing. Where a lot's inspection "
+                  "was keyed twice the records carry identical figures and were "
+                  "counted once. Where pieces were found after a lot was first "
+                  "logged - at a full-lot sort, or on review - the further "
+                  "pieces sit on a record of their own against the same lot with "
+                  "no inspected quantity: {:,} such pieces across the four "
+                  "candidates, {:,} of them SUP-4077's, and they were added to "
+                  "their lots. Deduplicating on `lot_id` alone would have dropped "
+                  "them, cut SUP-4077's scrap loss rate to about {:.3f}% from "
+                  "{:.3f}%, and handed it the award; not deduplicating at all "
+                  "double-counts SUP-4077's cleanest lots and does the same.\n".format(
+                      sum(defects[c]["added"] for c in CANDIDATES),
+                      defects["SUP-4077"]["added"],
+                      100 * source_stats["lot_dedup_loss_4077"],
+                      100 * rows["SUP-4077"]["loss_rate"]))
+    elif did["dedup"] in ("first", "last"):
         md.append("- **Double-logged inspection lots.** The inspection log "
                   "contains repeated `INCOMING` records for the same `lot_id` "
-                  "under different `inspection_id` values. These are one "
-                  "physical lot each and were deduplicated on `lot_id` before "
-                  "any rate was computed.\n")
+                  "under different `inspection_id` values. These were treated "
+                  "as one physical lot each and deduplicated on `lot_id`, "
+                  "keeping the {} record, before any rate was computed.\n"
+                  .format("earliest" if did["dedup"] == "first" else "latest"))
     else:
         md.append("- **Inspection records counted as keyed.** Every record in "
                   "the QMS log was counted as it stands, including repeated "
@@ -940,6 +984,7 @@ def source_statistics(lot_supplier, crosswalk, alias, good_units, freight):
     correct = load_defect_rates(lot_supplier, alias)
     no_xwalk = load_defect_rates(load_lot_supplier(load_po_supplier(alias), crosswalk,
                                                    use_crosswalk=False), alias)
+    lot_dedup = load_defect_rates(lot_supplier, alias, keep="first")
     over = (math.ceil(good_units / (1 - correct["SUP-1042"]["rate"]))
             - math.ceil(good_units / (1 - correct["SUP-1042"]["loss_rate"])))
     return dict(rows=rows, rows_1042=rows_1042,
@@ -948,6 +993,7 @@ def source_statistics(lot_supplier, crosswalk, alias, good_units, freight):
                 lots=sum(correct[c]["lots"] for c in CANDIDATES),
                 post_lots=sum(correct[c]["lots"] - no_xwalk[c]["lots"] for c in CANDIDATES),
                 pre_loss_3155=no_xwalk["SUP-3155"]["loss_rate"],
+                lot_dedup_loss_4077=lot_dedup["SUP-4077"]["loss_rate"],
                 rejected_total=sum(correct[c]["rejected"] for c in CANDIDATES),
                 returned_total=sum(correct[c]["returned"] for c in CANDIDATES),
                 overbuy_1042=over,

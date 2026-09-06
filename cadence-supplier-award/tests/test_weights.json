@@ -123,6 +123,10 @@
     "weight": 12
   },
   {
+    "test_name": "test_reject_rates_carry_the_supplementary_findings",
+    "weight": 10
+  },
+  {
     "test_name": "test_sup4077_volume_terms_applied_at_contract_year_demand",
     "weight": 10
   },

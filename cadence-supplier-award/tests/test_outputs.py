@@ -155,6 +155,10 @@ GOLD_DEFECTS = {
     "SUP-4077": dict(lots=61, units=182000, rejected=4368, scrapped=4124,
                      returned=244, rate=2.400),
 }
+# Pieces SUP-4077 had rejected on supplementary records - findings keyed against
+# a lot after it was first logged, with no inspected quantity of their own.
+# Deduplicating on lot_id keeps one record per lot and drops every one of them.
+SUPPLEMENTARY_4077 = 782
 REJECTED_TOTAL = sum(d["rejected"] for d in GOLD_DEFECTS.values())    # 21434
 SCRAPPED_TOTAL = sum(d["scrapped"] for d in GOLD_DEFECTS.values())    # 15869
 RETURNED_TOTAL = sum(d["returned"] for d in GOLD_DEFECTS.values())    #  5565
@@ -990,6 +994,32 @@ def test_disposal_charged_on_the_scrapped_pieces_only():
         "cost_buildup.csv charges no disposal element of the amount the "
         "scrapped pieces come to, for: %s. Disposal is USD 1.25 on the pieces "
         "Cadence scraps, not on every rejected piece" % "; ".join(missing))
+
+
+def test_reject_rates_carry_the_supplementary_findings():
+    """A lot can carry more than one QMS record for two different reasons: the
+    same inspection keyed twice (identical figures, one inspection) or pieces
+    found after the lot was first logged (a further record with no inspected
+    quantity, an addition to the lot). SUP-4077's record holds 782 rejected
+    pieces on such additions. Deduplicating on lot_id drops them all and reads
+    its rejects at 3,586; not deduplicating double-counts its repeated lots and
+    reads its inspected pieces above 182,000. Only the reading that counts a
+    repeat once and adds an addition lands on the filed figures."""
+    rows, _ = defects_rows()
+    assert rows and RUNNER_UP in rows, "no %s row in %s" % (RUNNER_UP, DEFECTS.name)
+    units, rejected = as_float(rows[RUNNER_UP][2]), as_float(rows[RUNNER_UP][3])
+    assert units is not None and rejected is not None, (
+        "%s figures not numeric" % RUNNER_UP)
+    gold = GOLD_DEFECTS[RUNNER_UP]
+    assert int(round(rejected)) != gold["rejected"] - SUPPLEMENTARY_4077, (
+        "%s units_rejected is %s: the %d pieces on its supplementary records "
+        "are missing, which is what deduplicating on lot_id does"
+        % (RUNNER_UP, rows[RUNNER_UP][3], SUPPLEMENTARY_4077))
+    assert int(round(units)) == gold["units"] and int(round(rejected)) == gold["rejected"], (
+        "%s is reported on %s inspected pieces with %s rejects; counting each "
+        "repeated record once and each addition in full gives %d and %d"
+        % (RUNNER_UP, rows[RUNNER_UP][2], rows[RUNNER_UP][3], gold["units"],
+           gold["rejected"]))
 
 
 def test_sup4077_volume_terms_applied_at_contract_year_demand():

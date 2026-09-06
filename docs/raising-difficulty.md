@@ -213,6 +213,35 @@ Task01 measured `f ≈ 0.27`, so `mean ≤ 0.6` needs `q**k ≤ 0.45`: at `q = 0
 that is `k ≥ 5`, at `q = 0.75` it is `k ≥ 3`. Six shipped. That is the concrete
 answer to "how many traps is enough."
 
+**When the sweep comes back over, read the four trials before touching a
+weight.** Cadence's first weak-model sweep on revision 7 scored 0.606, 0.241,
+0.580 and 0.201 - mean 0.407 against a 0.35 ceiling. Two trials at 0.6 and two
+at 0.2 is not "a bit too easy": a score of 0.6 is reachable only with all 191
+decision points, so the weak model was solving the whole task, every layer,
+half the time, and landing on a decoy at `f` the other half. With `f` and the
+correct-decision score both pinned by the design, the only thing that moves the
+mean is the solve rate, and 0.5 · 0.59 + 0.5 · 0.22 = 0.41 has to become
+0.33 · 0.59 + 0.67 · 0.22 = 0.34. That is a seventh layer, not a reweighting.
+
+**Make the careful action the trap.** The seventh layer: a lot can carry more
+than one QMS record for two different reasons - the same inspection keyed
+twice, or pieces found after the lot was first logged and keyed as a further
+record with no inspected quantity of its own. Both are ordinary QMS practice
+and both are described in the receiving procedure. An attempt that has read
+that duplicates exist and deduplicates on `lot_id` - the careful thing, and
+pandas' default - silently drops 782 of SUP-4077's scrapped pieces and awards
+it the contract; an attempt that does not deduplicate double-counts SUP-4077's
+cleanest lots and does the same. Only reading what each repeat record *is*
+lands on the answer. The ground truth did not move by a cent: the pieces were
+moved between records of the same lots, so every gold figure, the rubric and
+the sentinels stayed as they were, and the layer cost one new sentinel check.
+
+**Fix the convention bug the layer exposes.** Building it surfaced that one
+existing duplicate pair carried different figures, so keep-first and keep-last
+had been producing different `defect_rates.csv` files for six revisions - two
+correct-looking implementations disagreeing, the exact defect the task03 notes
+warn about. A lot keyed twice now carries one set of figures by construction.
+
 **Measure `f`, don't assume it,** and measure it over internally consistent
 wrong attempts. Cadence's harness prints it: max 0.416 and mean 0.225 over 27
 wrong-decision paths, which puts the strong ceiling at `q**k ≤ 0.484` and the

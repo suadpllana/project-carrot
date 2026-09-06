@@ -41,6 +41,8 @@ TESTS = ROOT / "tests"
 SOLVE = ROOT / "solution" / "solve.py"
 
 CANDIDATES = ["SUP-1042", "SUP-2318", "SUP-3155", "SUP-4077"]
+# independently decisive judgements the design plants (task_card.md, 0a-0e, 1, 2)
+LAYERS = 7
 
 
 # ===========================================================================
@@ -93,17 +95,26 @@ def rederive():
     recs = [json.loads(l) for l in open(DATA / "quality" / "incoming_inspection_2025.jsonl",
                                         encoding="utf-8") if l.strip()]
     n_source = sum(1 for r in recs if r["inspection_point"] == "SOURCE")
-    seen = {}
-    for r in recs:
-        if r["part_number"] != "SP-40" or r["inspection_point"] != "INCOMING":
-            continue
-        if r["lot_id"] not in seen or r["inspection_id"] < seen[r["lot_id"]]["inspection_id"]:
-            seen[r["lot_id"]] = r
+    # one physical lot may carry several INCOMING records: a repeat of the
+    # same inspection (identical figures - count once) or pieces found after
+    # the lot was first logged (no inspected quantity - add to the lot)
+    incoming = sorted((r for r in recs if r["part_number"] == "SP-40"
+                       and r["inspection_point"] == "INCOMING"),
+                      key=lambda r: r["inspection_id"])
+    keep, figures = [], set()
+    for r in incoming:
+        fig = (r["lot_id"], r["qty_inspected"], r["qty_rejected"], r["disposition"])
+        if r["qty_inspected"] == 0 or fig not in figures:
+            figures.add(fig)
+            keep.append(r)
     defects = {c: [0, 0, 0, 0] for c in CANDIDATES}   # lots, inspected, rejected, scrapped
-    for r in seen.values():
+    lots_seen = set()
+    for r in keep:
         c = lot_sup.get(r["lot_id"])
         if c in defects:
-            defects[c][0] += 1
+            if r["lot_id"] not in lots_seen:
+                defects[c][0] += 1
+                lots_seen.add(r["lot_id"])
             defects[c][1] += r["qty_inspected"]
             defects[c][2] += r["qty_rejected"]
             if r["disposition"] == "SCRAP":
@@ -192,6 +203,12 @@ ROUTES = [
      dict(defect_kw=dict(points=None, keep="last"))),
     ("pools the SOURCE inspections, no dedupe",
      dict(defect_kw=dict(points=None, keep="none"))),
+    ("dedups on lot_id, keeps the first record (drops the additions)",
+     dict(defect_kw=dict(keep="first"))),
+    ("dedups on lot_id, keeps the last record",
+     dict(defect_kw=dict(keep="last"))),
+    ("does not dedup at all (double-counts the repeats)",
+     dict(defect_kw=dict(keep="none"))),
     ("joins receipts without the ERP number reference",
      dict(lot_kw=dict(use_crosswalk=False))),
     ("attributes lots on the free-text supplier field",
@@ -238,6 +255,8 @@ PROFILES = [
      dict(build_kw=dict(terms=False, disposal=False))),
     ("every judgement right, cube horizon not trimmed",
      dict(demand_kw=dict(window="horizon"))),
+    ("every judgement right, then dedups on lot_id to be safe",
+     dict(defect_kw=dict(keep="first"))),
 ]
 
 # The spec-only path: an attempt that does everything a SHIPPED DOCUMENT tells
@@ -252,15 +271,17 @@ PROFILES = [
 # and the QMS supplier field is keyed by hand and unvalidated, so lots are
 # attributed through the receipt - and it is given the November cycle and the
 # dedupe, which the planning note and QP-07 section 2 respectively describe.
-# What it does not do is the three things no document decides for it: which
+# What it does not do is the four things no document decides for it: which
 # months of the cube the contract covers, which inspection records are the
-# reject population, and which rejected pieces are actually a loss.
+# reject population, which rejected pieces are actually a loss, and what a
+# repeated record for a lot is (it deduplicates on lot_id, as the existence
+# of duplicates in QP-07 section 2 invites).
 SPEC_ONLY = [
     ("spec-only: every documented step, no judgement of its own",
-     dict(defect_kw=dict(points=None), demand_kw=dict(window="horizon"),
+     dict(defect_kw=dict(points=None, keep="first"), demand_kw=dict(window="horizon"),
           build_kw=dict(loss="all"))),
     ("spec-only, but reads the cube over calendar 2026",
-     dict(defect_kw=dict(points=None), demand_kw=dict(window="calendar"),
+     dict(defect_kw=dict(points=None, keep="first"), demand_kw=dict(window="calendar"),
           build_kw=dict(loss="all"))),
 ]
 
@@ -590,8 +611,8 @@ def main():
               % (f_max, f_mean, len(wrong)))
         for target, ceiling in (("strong", 0.60), ("weak", 0.35)):
             room = (ceiling - f_mean) / (1 - f_mean) if f_mean < 1 else 0.0
-            print("  %-6s ceiling %.2f needs q**k <= %.3f  (k=6: q <= %.3f)"
-                  % (target, ceiling, room, room ** (1 / 6.0)))
+            print("  %-6s ceiling %.2f needs q**k <= %.3f  (k=%d: q <= %.3f)"
+                  % (target, ceiling, room, LAYERS, room ** (1.0 / LAYERS)))
 
     floor, floor_passed = floor_probe(solve)
     print("structural floor (well-formed, no analysis): %.3f  [%s]"

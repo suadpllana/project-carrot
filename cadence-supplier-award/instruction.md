@@ -122,11 +122,11 @@ Each section must contain **at least 30 words**, and must cover the following.
   covers.
 - `## Basis of Decision` — what drives the ranking, and why each of the three
   suppliers you did not pick loses, naming each of them.
-- `## Data Quality and Exclusions` — which inspection records you counted
-  towards the reject rates and which you set aside, with the reason and the
-  lots or pieces involved; anything else you excluded from the source data and
-  why; and every supplier that appears in the source data but is not a
-  candidate for this award.
+- `## Data Quality and Exclusions` — how the reject rates were built from the
+  inspection log: which records they rest on, and anything in the log you did
+  not take at face value, with the reason and the lots or pieces involved;
+  anything else you excluded from the source data and why; and every supplier
+  that appears in the source data but is not a candidate for this award.
 - `## Risks and Sensitivities` — the risks attached to the supplier you
   picked, and what would have to change to overturn the recommendation, stated
   as a quantity.

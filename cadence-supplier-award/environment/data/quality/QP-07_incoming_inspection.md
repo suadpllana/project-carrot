@@ -19,7 +19,11 @@ order that brought it in.
 
 Inspection records are written to the QMS as they are keyed. The QMS assigns
 its own record number to each and does not merge records: where the same
-inspection is keyed twice, both records stand.
+inspection is keyed twice, both records stand. Where nonconforming pieces are
+identified in a lot after its inspection record has been keyed - at a full-lot
+sort, or when a finding is upheld on review - the further pieces are keyed as a
+record of their own against the same lot identifier, carrying the pieces newly
+rejected and no inspected quantity of its own.
 
 ## 3. Inspection
 
@@ -54,9 +58,7 @@ Where the commodity team has placed a supplier on source inspection, a Cadence
 supplier-quality engineer inspects the lot at the supplier's plant before it
 is released for shipment. Pieces found nonconforming there are scrapped or
 reworked at the seller's plant, at the seller's cost, and the seller makes the
-tendered quantity good before the shipment is released; they are not shipped
-to Aurora, are never received against a purchase order, and do not appear on
-the seller's invoice.
+tendered quantity good before the shipment is released.
 
 Source-inspection trip reports are entered into the same QMS log as receiving
 inspections, under the engineer's own inspector identifier, and are keyed on
