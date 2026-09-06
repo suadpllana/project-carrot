@@ -89,12 +89,12 @@ supplier_code,cost_element,amount_usd
 | `cost_element` | Your own short label for the element: lower case, letters, digits and underscores only, at most 32 characters |
 | `amount_usd` | The US-dollar amount charged for that element, 2 decimal places, negative where the element reduces the cost |
 
-You choose the elements and what to call them. Two rules bind them: give each
-element you charged its own row rather than folding it into another, and for
-each supplier the `amount_usd` values must add up to that supplier's
-`total_fy2026_cost_usd` in `supplier_costs.csv`, allowing only the rounding of
-the elements themselves — half a cent per row written. Do not write the total
-itself as an element. Rows sorted by `supplier_code` ascending, then by
+You choose the elements and what to call them. Three rules bind them: give each
+element you charged its own row rather than folding it into another; file at
+most sixteen rows for any one supplier; and for each supplier the `amount_usd`
+values must add up to that supplier's `total_fy2026_cost_usd` in
+`supplier_costs.csv`, allowing only the rounding of the elements themselves —
+half a cent per row written. Do not write the total itself as an element. Rows sorted by `supplier_code` ascending, then by
 `cost_element` ascending. The same numeric formatting rule as above applies.
 
 ### 4. `/workspace/output/recommendation.md`
@@ -123,9 +123,10 @@ Each section must contain **at least 30 words**, and must cover the following.
 - `## Basis of Decision` — what drives the ranking, and why each of the three
   suppliers you did not pick loses, naming each of them.
 - `## Data Quality and Exclusions` — which inspection records you counted
-  towards the reject rates and which you set aside, with the reason; anything
-  else you excluded from the source data and why; and every supplier that
-  appears in the source data but is not a candidate for this award.
+  towards the reject rates and which you set aside, with the reason and the
+  lots or pieces involved; anything else you excluded from the source data and
+  why; and every supplier that appears in the source data but is not a
+  candidate for this award.
 - `## Risks and Sensitivities` — the risks attached to the supplier you
   picked, and what would have to change to overturn the recommendation, stated
   as a quantity.

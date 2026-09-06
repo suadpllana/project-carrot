@@ -140,7 +140,7 @@ scrapped share collapses with them.
 *Correct attempt:* checks that the join matched, resolves post-cutover
 receipts through the reference extract, and attributes all 63 SUP-3155 lots.
 *Careless attempt:* reads SUP-3155's scrapped share at 1.497% instead of
-4.792%, and awards SUP-3155. Measured 0.111 with 0 of 191 decision points.
+4.792%, and awards SUP-3155. Measured 0.123 with 0 of 191 decision points.
 
 **1. Attribution off the free-text supplier field.**
 *Planted:* the inspection log's `supplier` field is empty or `null` on 59 of
@@ -238,6 +238,23 @@ the last:
   the weak model was reaching the right supplier in every trial and losing
   points only on figures. Decision weight was that model's floor, not its risk.
 
+**Revision 7's audit round.** The quality audit flagged six checks at 14.8% of
+the suite against a 10% limit, and all six were fair. The exactly-one-award
+check missed a joint award written in one sentence ("award SUP-1042 and
+SUP-4077"); it now flags a second supplier in any awarding statement that is
+not a comparison. The disposition-split check demanded two specific pooled
+totals in one specific section; it now accepts any figure only a separated
+disposition produces - pooled totals, any supplier's returned or scrapped
+pieces, or any supplier's scrapped share - anywhere in the memo, and the
+prompt now asks for "the lots or pieces involved". The exclusions check wanted
+three reasoned topics without saying so; the floor is two, which is what the
+prompt's wording ("the records set aside ... and anything else ... and why")
+already requires. The three build-up checks matched an amount against at most
+four rows; the matcher is now a subset-sum over cents with no cap, and the
+prompt states the one limit that remains, sixteen rows per supplier. Nothing
+of the answer moved; two receipt-join variants gained the 5-point disposition
+check they had always deserved.
+
 **Revision 7 measures rather than asserts.** No crux moved and no figure of
 the answer changed; the work was on the harness and the verifier. The reference
 solution and the provenance tooling dropped `openpyxl` for a standard-library
@@ -271,7 +288,7 @@ omission per row:
 | pools the SOURCE inspections (dedupe keeps first record) | SUP-4077 | 504,431 | USD 953,203.26 | 0.155 | 0 / 191 |
 | pools the SOURCE inspections (dedupe keeps last record) | SUP-4077 | 504,431 | USD 953,203.26 | 0.155 | 0 / 191 |
 | pools the SOURCE inspections, no dedupe | SUP-4077 | 503,801 | USD 951,540.05 | 0.118 | 0 / 191 |
-| joins receipts without the ERP number reference | SUP-3155 | 500,493 | USD 917,735.67 | 0.111 | 0 / 191 |
+| joins receipts without the ERP number reference | SUP-3155 | 500,493 | USD 917,735.67 | 0.123 | 0 / 191 |
 | attributes lots on the free-text supplier field | SUP-3155 | 500,359 | USD 917,324.96 | 0.123 | 0 / 191 |
 | plans on calendar 2026 instead of the contract year | SUP-4077 | 523,871 | USD 944,979.72 | 0.192 | 0 / 191 |
 | plans on the whole fifteen-month cube horizon | SUP-4077 | 638,058 | USD 1,149,594.12 | 0.192 | 0 / 191 |
@@ -297,7 +314,7 @@ does every documented step and misses one or two judgements:
 | reads the log as one reject population (the default) | SUP-4077 | 505,123 | USD 955,030.16 | 0.219 | 0 / 191 |
 | one reject population, pools SOURCE records | SUP-4077 | 505,123 | USD 955,030.16 | 0.118 | 0 / 191 |
 | one reject population, calendar-2026 window | SUP-4077 | 524,591 | USD 947,149.52 | 0.180 | 0 / 191 |
-| pools SOURCE, joins receipts on po_id as it stands | SUP-3155 | 500,493 | USD 917,735.67 | 0.126 | 8 / 191 |
+| pools SOURCE, joins receipts on po_id as it stands | SUP-3155 | 500,493 | USD 917,735.67 | 0.138 | 8 / 191 |
 | free-text attribution, October plan cycle | SUP-4077 | 549,387 | USD 990,249.84 | 0.094 | 0 / 191 |
 | every judgement right, whole-box rule and rounded price missed | SUP-1042 | 494,936 | USD 950,828.57 | 0.685 | 170 / 191 |
 | every judgement right, payment terms and disposal missed | SUP-4077 | 504,431 | USD 945,595.48 | 0.367 | 0 / 191 |
@@ -321,7 +338,7 @@ wrong-supplier route reaches is 0.416, and that is an attempt that got all six
 judgements and every other cost term right and misread one rebate clause.
 
 Across those twenty-seven wrong-decision paths the score cap is **max 0.416,
-mean 0.225**. Read through `mean = q**k + (1 - q**k) * f`, with `k = 6`
+mean 0.226**. Read through `mean = q**k + (1 - q**k) * f`, with `k = 6`
 independently decisive judgements, that puts the strong ceiling of 0.60 at
 `q <= 0.886` per layer and the weak ceiling of 0.35 at `q <= 0.737`. **The weak
 ceiling is the binding one**, and it is the one a model sweep still has to

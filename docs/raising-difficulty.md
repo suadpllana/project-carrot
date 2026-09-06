@@ -297,6 +297,26 @@ which meant a heuristic would pass the test. I tuned the load shape until the
 answer was more than 6% from every round-hour multiple, then confirmed that a
 four-hour and a six-hour rule both fail.
 
+**Every limit a check applies is either in the prompt or a defect.** The
+quality audit flags a test that "matches output too literally to survive a
+valid solution", and it reads *any* undisclosed threshold that way: cadence's
+build-up matcher tried subsets of at most four rows, and its exclusions check
+wanted at least three topics, and neither number was anywhere the attempt could
+read. Both were reasonable engineering choices and both were findings. The
+fixes are the two the audit names: relax the check until it accepts every
+correct answer (the matcher now takes any subset, by a subset-sum over cents),
+or state the limit in the prompt and enforce exactly that (the build-up now
+says "at most sixteen rows per supplier", and the shape check asserts it). The
+audit also caps the weight such tests may carry at 10% of the suite, so six
+small findings can fail a package that has no large one.
+
+**A "detects the defect" check has to detect the defect in every form.** The
+same audit flagged the exactly-one-award check for passing "award SUP-1042 and
+SUP-4077" - it only looked for a second supplier in a sentence that did *not*
+name the awardee. Write the negative case out ("award A and B", "we also
+recommend B", "recommend A; B is the runner-up") and probe each against the
+verifier before shipping; two of those three should fail and one should pass.
+
 **Grade what the attempt charged, not how it wrote it down.** Cadence's
 build-up checks matched each cost element against a single filed row, while the
 prompt invited the attempt to itemise freely. An analytically perfect answer

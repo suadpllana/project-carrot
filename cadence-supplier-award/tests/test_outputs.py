@@ -206,13 +206,25 @@ EXCLUSION_TOPICS = {
     "cancelled orders": r"cancel",
     "the daily FX export": r"daily|planning rate|fx_daily|exchange rate",
 }
-MIN_EXCLUSION_TOPICS = 3
+# instruction.md asks for the inspection records set aside AND anything else
+# excluded, each with its reason: the source inspections plus at least one
+# further population, so two topics with a reason is the floor a correct memo
+# cannot fall below (it has excluded SP-22, the October cycle, the subtotal
+# rows and the non-candidate's lots whatever else it did)
+MIN_EXCLUSION_TOPICS = 2
+# instruction.md caps the build-up at this many rows per supplier
+MAX_BUILDUP_ROWS = 16
 MIN_SECTION_WORDS = 30          # instruction.md sets this floor per section
 
 # Awarding language. instruction.md asks `## Recommendation` for exactly one
 # awarded supplier, so a statement that awards a different one is a second
 # award however the memo words it.
 AWARD_WORDS = r"award|recommend|select|choose|consolidat|go with|place the (?:volume|contract)"
+# A statement that names a second supplier beside the awardee is comparing the
+# two, not awarding both, when it carries any of these.
+COMPARISON_WORDS = (r"beat|second|runner|than|against|versus|\bvs\b|behind|ahead|"
+                    r"lower|higher|cheaper|dearer|instead|rather|\bnot\b|lose|lost|"
+                    r"rank|over the|margin|ahead of|edge")
 
 # Conditional language. instruction.md asks `## Risks and Sensitivities` to say
 # what would have to change to overturn the recommendation, as a quantity, so
@@ -262,6 +274,13 @@ CONTRACT_WINDOW_TO = r"march\s*2027|mar\.?\s*2027|2027-03|03/2027|31[\s./-]*3[\s
 # for the pieces that went back to the seller.
 DISPOSITION_WORDS = (r"return|rtv|rma|replac|sent back|back to the (?:seller|"
                      r"supplier|vendor)|scrap")
+# Any figure that only an attempt which separated the two dispositions has:
+# the pooled totals, any supplier's returned or scrapped pieces, or any
+# supplier's scrapped share of inspected pieces (to the 3 dp the file uses).
+DISPOSITION_COUNTS = [RETURNED_TOTAL, SCRAPPED_TOTAL] + [
+    d[k] for d in GOLD_DEFECTS.values() for k in ("returned", "scrapped")]
+DISPOSITION_SHARES = [round(100.0 * d["scrapped"] / d["units"], 3)
+                      for d in GOLD_DEFECTS.values()]
 
 # What separates the four offers. A statement that names a supplier that lost
 # and reaches for one of these is giving a reason, whatever words it uses; a
@@ -381,26 +400,31 @@ def is_whole(value):
     return abs(value - round(value)) <= 1e-9
 
 
-def charges_amount(amounts, target, max_terms=4):
-    """The attempt charged `target` - as one element, or as several adding to it.
+def charges_amount(amounts, target):
+    """The attempt charged `target` - as one element, or as any set of elements
+    adding to it.
 
     instruction.md lets the attempt choose its own elements and labels, and
     asks it to give each element it charged its own row rather than folding one
     into another. A build-up that itemises inbound freight as the lane tariff
     and the brokerage, or the banded rebate band by band, has charged the same
     amount correctly and has to be read as having charged it. Only amounts are
-    matched; the labels are never inspected.
+    matched; the labels are never inspected, and there is no limit on how many
+    rows an amount may be spread across beyond the per-supplier row cap the
+    prompt states. Every row is rounded to the cent, so a sum of n rows may sit
+    up to half a cent per row from the amount charged.
     """
-    amounts = [a for a in amounts if a is not None][:24]
-    if any(abs(a - target) <= 0.005 + 1e-9 for a in amounts):
-        return True
-    for r in range(2, min(max_terms, len(amounts)) + 1):
-        for combo in itertools.combinations(amounts, r):
-            # every row is rounded to the cent, so a sum of r of them can sit
-            # up to half a cent per row away from the amount actually charged
-            if abs(sum(combo) - target) <= 0.005 * r + 1e-9:
-                return True
-    return False
+    cents = [int(round(a * 100)) for a in amounts if a is not None][:MAX_BUILDUP_ROWS]
+    goal = int(round(target * 100))
+    reach = {0: 0}                       # sum in cents -> fewest rows making it
+    for c in cents:
+        step = dict(reach)
+        for total, n in reach.items():
+            if step.get(total + c, n + 2) > n + 1:
+                step[total + c] = n + 1
+        reach = step
+    return any(n >= 1 and abs(total - goal) <= n // 2
+               for total, n in reach.items())
 
 
 # A dollar marker directly before or after a figure: `USD 963017.63`,
@@ -706,12 +730,15 @@ def test_recommendation_names_correct_supplier():
     assert put_forward, (
         "## Recommendation names %s but never puts it forward for the award; "
         "the prompt asks the section to name the awarded supplier" % AWARD)
-    # exactly one: no statement may award a supplier other than the awardee
+    # exactly one: no statement may put a second supplier forward, whether on
+    # its own ("we also recommend SUP-4077") or beside the awardee ("award
+    # SUP-1042 and SUP-4077"). Naming the runner-up in a comparison is not an
+    # award, so a statement that compares is left alone.
     also_awarded = sorted({
         c for c in CANDIDATES if c != AWARD
         for unit in statements(body)
-        if mentions(unit, c) and not mentions(unit, AWARD)
-        and re.search(AWARD_WORDS, unit, re.IGNORECASE)})
+        if mentions(unit, c) and re.search(AWARD_WORDS, unit, re.IGNORECASE)
+        and not re.search(COMPARISON_WORDS, unit, re.IGNORECASE)})
     assert not also_awarded, (
         "## Recommendation puts %s forward for the award as well; the prompt "
         "asks for exactly one awarded supplier" % ", ".join(also_awarded))
@@ -1065,6 +1092,9 @@ def test_cost_buildup_header_and_shape():
         labels = [e for e, _ in items]
         assert len(labels) == len(set(labels)), (
             "%s repeats a cost_element; each element charged gets one row" % code)
+        assert len(items) <= MAX_BUILDUP_ROWS, (
+            "%s has %d rows; the prompt allows at most %d per supplier"
+            % (code, len(items), MAX_BUILDUP_ROWS))
     ordered = [(c, e) for c, e, _ in rows]
     assert ordered == sorted(ordered), (
         "rows must be sorted by %s then %s"
@@ -1165,23 +1195,26 @@ def test_memo_states_the_contract_year_window():
 
 
 def test_memo_reports_the_reject_disposition_split():
-    """instruction.md asks `## Data Quality and Exclusions` which inspection
-    records were counted towards the reject rates and which were set aside,
-    with the reason. The pieces returned to the seller and replaced free of
-    charge are rejects that are not a loss, and only an attempt that separated
-    them has the figure: 5,565 of the 21,434 rejected pieces went back, leaving
-    15,869 scrapped."""
-    body = section("Data Quality and Exclusions")
-    assert body.strip(), "%s section missing or empty" % SEC_DATA_QUALITY
-    tied = [u for u in statements(body)
+    """instruction.md asks the memo which inspection records were counted and
+    which were set aside, with the reason and the pieces involved. Some of the
+    rejected pieces went back to the seller and were replaced free of charge,
+    so they are rejects but not a loss - and only an attempt that separated the
+    two dispositions has any figure for it: the pooled totals, a supplier's
+    returned or scrapped pieces, or a supplier's scrapped share. Any of those,
+    anywhere in the memo, beside a word for the disposition, is accepted."""
+    text = memo_text()
+    assert text.strip(), "%s missing or empty" % MEMO.name
+    tied = [u for u in statements(text)
             if re.search(DISPOSITION_WORDS, u, re.IGNORECASE)
-            and (states_count(u, RETURNED_TOTAL) or states_count(u, SCRAPPED_TOTAL))]
+            and (any(states_count(u, n) for n in DISPOSITION_COUNTS)
+                 or any(abs(v - share) <= 0.0005 + 1e-9
+                        for v in numbers_in(u) for share in DISPOSITION_SHARES))]
     assert tied, (
-        "## Data Quality and Exclusions never reports how the rejected pieces "
-        "were dispositioned: of %d pieces rejected at incoming inspection %d "
-        "went back to the seller on a return authorisation and %d were "
-        "scrapped, and only the scrapped pieces are a loss the purchase "
-        "quantity carries" % (REJECTED_TOTAL, RETURNED_TOTAL, SCRAPPED_TOTAL))
+        "the memo never reports how the rejected pieces were dispositioned: of "
+        "%d pieces rejected at incoming inspection %d went back to the seller "
+        "on a return authorisation and %d were scrapped, and only the scrapped "
+        "pieces are a loss the purchase quantity carries"
+        % (REJECTED_TOTAL, RETURNED_TOTAL, SCRAPPED_TOTAL))
 
 
 def test_memo_flags_non_candidate_supplier():
@@ -1208,9 +1241,9 @@ def test_memo_flags_non_candidate_supplier():
         "counted towards the reject rates and which were set aside"
         % SEC_DATA_QUALITY)
     assert len(reported) >= MIN_EXCLUSION_TOPICS, (
-        "%s names %s but gives a reason for only %d of the populations it "
-        "set aside (%s); the prompt asks what else was excluded from the "
-        "source data and why"
+        "%s names %s but gives a reason for only %d population it set aside "
+        "(%s); the prompt asks for the inspection records set aside AND what "
+        "else was excluded from the source data, each with its reason"
         % (SEC_DATA_QUALITY, NON_CANDIDATE, len(reported),
            ", ".join(reported) or NOTHING_REPORTED))
 

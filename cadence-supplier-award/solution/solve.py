@@ -649,25 +649,37 @@ def write_outputs(names, defects, rows, order, good_units, freight, source_stats
               "{}, and it is the wrong answer.\n".format(
                   win, rows[win]["unit_price"], rows[cheapest]["unit_price"],
                   cheapest, cheapest))
-    md.append("**What Cadence scraps decides the purchase quantity.** The four "
-              "suppliers reject at {} of inspected pieces, but they are not "
-              "dispositioned alike: {} of SUP-1042's rejected pieces went back "
-              "to the seller on a return authorisation and were replaced free "
-              "of charge, against {} of SUP-4077's. On the pieces Cadence "
-              "actually scrapped the four run at {}, and that is what the buy "
-              "has to carry. It moves the purchase quantity by {:,} pieces "
-              "between the best and worst supplier and is the reason SUP-3155 "
-              "cannot win on its low peso price.\n".format(
-                  ", ".join("{} {:.2f}%".format(c, 100 * rows[c]["rate"])
-                            for c in sorted(CANDIDATES)),
-                  "{:,} of {:,}".format(defects["SUP-1042"]["returned"],
-                                        defects["SUP-1042"]["rejected"]),
-                  "{:,} of {:,}".format(defects["SUP-4077"]["returned"],
-                                        defects["SUP-4077"]["rejected"]),
-                  ", ".join("{} {:.3f}%".format(c, 100 * rows[c]["loss_rate"])
-                            for c in sorted(CANDIDATES)),
-                  max(rows[c]["units"] for c in CANDIDATES)
-                  - min(rows[c]["units"] for c in CANDIDATES)))
+    if did["scrapped_only"]:
+        md.append("**What Cadence scraps decides the purchase quantity.** The four "
+                  "suppliers reject at {} of inspected pieces, but they are not "
+                  "dispositioned alike: {} of SUP-1042's rejected pieces went back "
+                  "to the seller on a return authorisation and were replaced free "
+                  "of charge, against {} of SUP-4077's. On the pieces Cadence "
+                  "actually scrapped the four run at {}, and that is what the buy "
+                  "has to carry. It moves the purchase quantity by {:,} pieces "
+                  "between the best and worst supplier and is the reason SUP-3155 "
+                  "cannot win on its low peso price.\n".format(
+                      ", ".join("{} {:.2f}%".format(c, 100 * rows[c]["rate"])
+                                for c in sorted(CANDIDATES)),
+                      "{:,} of {:,}".format(defects["SUP-1042"]["returned"],
+                                            defects["SUP-1042"]["rejected"]),
+                      "{:,} of {:,}".format(defects["SUP-4077"]["returned"],
+                                            defects["SUP-4077"]["rejected"]),
+                      ", ".join("{} {:.3f}%".format(c, 100 * rows[c]["loss_rate"])
+                                for c in sorted(CANDIDATES)),
+                      max(rows[c]["units"] for c in CANDIDATES)
+                      - min(rows[c]["units"] for c in CANDIDATES)))
+    else:
+        md.append("**Quality decides the purchase quantity.** The four "
+                  "suppliers reject at {} of inspected pieces, and the buy is "
+                  "grossed up for every rejected piece, which moves the "
+                  "purchase quantity by {:,} pieces between the best and worst "
+                  "supplier and is the reason SUP-3155 cannot win on its low "
+                  "peso price.\n".format(
+                      ", ".join("{} {:.2f}%".format(c, 100 * rows[c]["rate"])
+                                for c in sorted(CANDIDATES)),
+                      max(rows[c]["units"] for c in CANDIDATES)
+                      - min(rows[c]["units"] for c in CANDIDATES)))
     md.append("**Two offers are origin-term, two are delivered.** SUP-2318 and "
               "SUP-4077 are FCA at the seller's works, so Cadence pays inbound "
               "freight, duty and brokerage on those lanes: USD {} and USD {} "
